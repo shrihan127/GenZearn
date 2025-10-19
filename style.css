@@ -1,1 +1,130 @@
+/* ====== Global Styles ====== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: "Poppins", Arial, sans-serif;
+}
+
+body {
+  background: #f9fafc;
+  color: #333;
+  line-height: 1.6;
+}
+
+/* ====== Header ====== */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: linear-gradient(90deg, #0077ff, #00c6ff);
+  color: white;
+}
+
+header .logo {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+header nav a {
+  color: white;
+  margin-left: 1rem;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+header nav a:hover {
+  text-decoration: underline;
+}
+
+/* ====== Hero Section ====== */
+.hero {
+  text-align: center;
+  padding: 5rem 1rem;
+  background: linear-gradient(135deg, #00c6ff, #0077ff);
+  color: white;
+}
+
+.hero h2 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.hero p {
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+}
+
+.hero-buttons .btn {
+  margin: 0 0.5rem;
+}
+
+/* ====== Buttons ====== */
+.btn {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  border-radius: 30px;
+  text-decoration: none;
+  transition: 0.3s;
+  font-weight: 600;
+}
+
+.btn.primary {
+  background: #ffffff;
+  color: #0077ff;
+}
+
+.btn.secondary {
+  border: 2px solid #fff;
+  color: #fff;
+}
+
+.btn:hover {
+  transform: scale(1.05);
+}
+
+/* ====== Forms ====== */
+.form-section {
+  max-width: 400px;
+  margin: 5rem auto;
+  text-align: center;
+}
+
+.form-section form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-section input,
+.form-section textarea {
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.form-section button {
+  background: #0077ff;
+  color: white;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.form-section button:hover {
+  background: #005fcb;
+}
+
+/* ====== Footer ====== */
+footer {
+  text-align: center;
+  padding: 2rem;
+  background: #f1f1f1;
+  margin-top: 3rem;
+  color: #555;
+}
 
