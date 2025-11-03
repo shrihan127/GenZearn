@@ -1,4 +1,10 @@
-/* ====== Global Styles ====== */
+/* =========================================================
+   GenZearn Global Styles
+   Author: Swathi P
+   Site: https://genzearn.com/
+   ========================================================= */
+
+/* ====== Reset & Base ====== */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -15,33 +21,46 @@ body {
 /* ====== Header ====== */
 header {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-@@ -23,165 +8,93 @@ header {
+  background: linear-gradient(135deg, #00c6ff, #0077ff);
+  color: white;
+  padding: 1rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
 header .logo {
-  font-size: 1.8rem;
-  font-weight: 700;
-}
-
-header nav a {
-  color: white;
-  margin-left: 1rem;
   display: flex;
   align-items: center;
   text-decoration: none;
-  font-weight: 500;
+  color: white;
+  font-weight: 700;
+  font-size: 1.6rem;
 }
 
-header nav a.active {
-  text-decoration: underline;
 header .site-logo {
   height: 50px;
   width: auto;
   margin-right: 0.5rem;
 }
 
-header nav a:hover {
+header nav {
+  display: flex;
+  align-items: center;
+}
+
+header nav a {
+  color: white;
+  margin-left: 1.25rem;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s, text-decoration 0.3s;
+}
+
+header nav a:hover,
+header nav a.active {
   text-decoration: underline;
 }
 
@@ -50,20 +69,19 @@ header nav a:hover {
   text-align: center;
   padding: 5rem 1rem;
   background: linear-gradient(135deg, #00c6ff, #0077ff);
-header .tagline {
-  font-weight: 600;
-  font-size: 1rem;
   color: white;
 }
 
 .hero h2 {
   font-size: 2.5rem;
   margin-bottom: 1rem;
+  font-weight: 700;
 }
 
 .hero p {
   font-size: 1.2rem;
   margin-bottom: 2rem;
+  font-weight: 400;
 }
 
 .hero-buttons .btn {
@@ -75,30 +93,27 @@ header .tagline {
   display: inline-block;
   padding: 0.75rem 1.5rem;
   border-radius: 30px;
-header nav a {
-  color: white;
-  margin-left: 1rem;
-  text-decoration: none;
-  transition: 0.3s;
-  font-weight: 600;
+  font-weight: 500;
+  transition: transform 0.2s ease, background 0.3s ease;
+  cursor: pointer;
 }
 
 .btn.primary {
-  background: #ffffff;
+  background: #fff;
   color: #0077ff;
-  font-weight: 500;
 }
 
 .btn.secondary {
   border: 2px solid #fff;
   color: #fff;
-header nav a:hover {
-  text-decoration: underline;
+  background: transparent;
 }
 
 .btn:hover {
   transform: scale(1.05);
-/* Modal CSS for connect.html (if not already included) */
+}
+
+/* ====== Modal (connect.html) ====== */
 .modal {
   display: none;
   position: fixed;
@@ -109,34 +124,25 @@ header nav a:hover {
   width: 100%;
   height: 100%;
   overflow: auto;
-  background-color: rgba(0,0,0,0.5);
+  background-color: rgba(0, 0, 0, 0.5);
 }
 
-/* ====== Forms ====== */
-.form-section {
 .modal-content {
   background-color: #fff;
-  margin: auto;
+  margin: 5rem auto;
   padding: 2rem;
   border-radius: 12px;
   max-width: 400px;
-  margin: 5rem auto;
   text-align: center;
   position: relative;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
-.form-section form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
 .modal-content h2 {
   margin-bottom: 1rem;
   color: #0077ff;
 }
 
-.form-section input,
-.form-section textarea {
 .modal-content input {
   width: 100%;
   margin-bottom: 1rem;
@@ -144,13 +150,8 @@ header nav a:hover {
   border: 1px solid #ccc;
   border-radius: 8px;
   font-size: 1rem;
-  border: 1px solid #ccc;
 }
 
-.form-section button {
-  background: #0077ff;
-  color: white;
-  border: none;
 .modal-content button {
   width: 100%;
   padding: 0.75rem;
@@ -163,18 +164,18 @@ header nav a:hover {
   cursor: pointer;
 }
 
-.form-section button:hover {
 .modal-content button:hover {
   background: #005fcb;
 }
 
-/* ====== Footer ====== */
-footer {
-  text-align: center;
-  padding: 2rem;
-  background: #f1f1f1;
-  margin-top: 3rem;
-  color: #555;
+.close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  color: #0077ff;
 }
 
 /* ====== Tutors Page ====== */
@@ -190,10 +191,10 @@ footer {
 .tutor-card {
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   padding: 1.5rem;
   text-align: center;
-  transition: 0.3s;
+  transition: transform 0.3s ease;
 }
 
 .tutor-card:hover {
@@ -205,6 +206,7 @@ footer {
   height: 120px;
   border-radius: 50%;
   margin-bottom: 1rem;
+  object-fit: cover;
 }
 
 .tutor-card h3 {
@@ -224,16 +226,20 @@ footer {
   border: none;
   padding: 0.6rem 1.2rem;
   border-radius: 25px;
-.close {
-  position: absolute;
-  top: 12px;
-  right: 16px;
-  font-size: 1.5rem;
-  font-weight: bold;
-  cursor: pointer;
-  color: #0077ff;
+  font-weight: 500;
+  transition: background 0.3s ease;
 }
 
 .tutor-card button:hover {
   background: #005fcb;
+}
+
+/* ====== Footer ====== */
+footer {
+  text-align: center;
+  padding: 2rem;
+  background: #f1f1f1;
+  margin-top: 3rem;
+  color: #555;
+  font-size: 0.95rem;
 }
