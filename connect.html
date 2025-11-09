@@ -7,37 +7,37 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- Navbar -->
+  <!-- Header -->
   <header>
-    <nav class="navbar">
-      <div class="logo">
-        <img src="logo.png" alt="GenZearn Logo">
-        <h1>GenZearn</h1>
-      </div>
-      <ul class="nav-links">
-        <li><a href="index.html">Home</a></li>
-        <li><a href="connect.html" class="active">Tutors</a></li>
-        <li><a href="login.html">Login</a></li>
-        <li><a href="signup.html">Sign Up</a></li>
-        <li><a href="become-tutor.html">Become a Tutor</a></li>
-      </ul>
-    </nav>
+    <div class="navbar">
+      <a href="index.html" class="logo">
+        <img src="logo.png" alt="GenZearn Logo" class="site-logo">
+        <span class="site-name">GenZearn</span>
+      </a>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="connect.html" class="active">Tutors</a>
+        <a href="login.html">Login</a>
+        <a href="signup.html">Sign Up</a>
+        <a href="become-tutor.html">Become a Tutor</a>
+      </nav>
+    </div>
   </header>
 
-  <!-- Hero Section -->
+  <!-- Hero -->
   <section class="hero" style="padding: 2rem 1rem;">
     <h2>Find Your Perfect Tutor</h2>
     <p>Browse top-rated tutors from around the world. Learn. Earn. Grow.</p>
   </section>
 
-  <!-- Tutors Section -->
+  <!-- Tutors Grid -->
   <section class="tutors">
     <div class="tutor-card">
       <img src="https://via.placeholder.com/120" alt="Tutor 1">
       <h3>Emma Johnson</h3>
       <p><strong>Subject:</strong> Math & Physics</p>
       <p><strong>Rating:</strong> ⭐⭐⭐⭐⭐ (4.9)</p>
-      <button class="cta" onclick="openModal('Emma Johnson')">Request Session</button>
+      <button class="btn primary" onclick="openModal('Emma Johnson')">Request Session</button>
     </div>
 
     <div class="tutor-card">
@@ -45,7 +45,7 @@
       <h3>James Patel</h3>
       <p><strong>Subject:</strong> English & Writing</p>
       <p><strong>Rating:</strong> ⭐⭐⭐⭐☆ (4.7)</p>
-      <button class="cta" onclick="openModal('James Patel')">Request Session</button>
+      <button class="btn primary" onclick="openModal('James Patel')">Request Session</button>
     </div>
 
     <div class="tutor-card">
@@ -53,7 +53,7 @@
       <h3>Sophia Lin</h3>
       <p><strong>Subject:</strong> Chemistry</p>
       <p><strong>Rating:</strong> ⭐⭐⭐⭐⭐ (5.0)</p>
-      <button class="cta" onclick="openModal('Sophia Lin')">Request Session</button>
+      <button class="btn primary" onclick="openModal('Sophia Lin')">Request Session</button>
     </div>
 
     <div class="tutor-card">
@@ -61,7 +61,7 @@
       <h3>Michael Brown</h3>
       <p><strong>Subject:</strong> Coding & Computer Science</p>
       <p><strong>Rating:</strong> ⭐⭐⭐⭐☆ (4.8)</p>
-      <button class="cta" onclick="openModal('Michael Brown')">Request Session</button>
+      <button class="btn primary" onclick="openModal('Michael Brown')">Request Session</button>
     </div>
   </section>
 
@@ -70,11 +70,11 @@
     <div class="modal-content">
       <span class="close" onclick="closeModal()">&times;</span>
       <h2>Request a Session with <span id="tutorName"></span></h2>
-      <form onsubmit="alert('Request submitted!'); closeModal(); return false;">
+      <form onsubmit="submitRequest(event)">
         <input type="text" placeholder="Your Name" required />
         <input type="email" placeholder="Your Email" required />
         <input type="text" placeholder="Subject / Topic" required />
-        <button type="submit" class="cta">Submit Request</button>
+        <button type="submit" class="btn primary">Submit Request</button>
       </form>
     </div>
   </div>
@@ -84,19 +84,27 @@
     <p>© 2025 GenZearn. All rights reserved.</p>
   </footer>
 
-  <!-- Modal Script -->
+  <!-- JS -->
   <script>
     function openModal(tutor) {
       document.getElementById('tutorName').textContent = tutor;
-      document.getElementById('modal').style.display = 'block';
+      document.getElementById('modal').style.display = 'flex';
     }
+
     function closeModal() {
       document.getElementById('modal').style.display = 'none';
     }
+
+    function submitRequest(event) {
+      event.preventDefault();
+      alert("Your session request has been submitted!");
+      closeModal();
+    }
+
     window.onclick = function(event) {
       const modal = document.getElementById('modal');
       if (event.target == modal) modal.style.display = 'none';
-    }
+    };
   </script>
 </body>
 </html>
