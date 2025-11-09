@@ -7,19 +7,24 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <!-- Navbar -->
   <header>
-    <a href="index.html" class="logo">
-      <img src="logo.png" alt="GenZearn Logo" class="site-logo">
-      <span class="tagline">Learn. Earn. Grow.</span>
-    </a>
-    <nav>
-      <a href="index.html">Home</a>
-      <a href="signup.html">Sign Up</a>
-      <a href="login.html">Login</a>
-      <a href="connect.html">Tutors</a>
+    <nav class="navbar">
+      <div class="logo">
+        <img src="logo.png" alt="GenZearn Logo">
+        <h1>GenZearn</h1>
+      </div>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="connect.html">Tutors</a></li>
+        <li><a href="login.html">Login</a></li>
+        <li><a href="signup.html">Sign Up</a></li>
+        <li><a href="become-tutor.html" class="active">Become a Tutor</a></li>
+      </ul>
     </nav>
   </header>
 
+  <!-- Main Section -->
   <section class="form-section">
     <h2>Become a GenZearn Tutor</h2>
     <p>Share your knowledge and earn by teaching students around the world.</p>
@@ -28,12 +33,13 @@
       <input type="email" placeholder="Email" required />
       <input type="text" placeholder="Subjects You Teach" required />
       <textarea placeholder="Brief bio about your experience" required></textarea>
-      <button type="submit" class="btn primary">Apply Now</button>
+      <button type="submit" class="cta">Apply Now</button>
     </form>
   </section>
 
+  <!-- Footer -->
   <footer>
-    <p>© 2025 GenZearn</p>
+    <p>© 2025 GenZearn. All rights reserved.</p>
   </footer>
 </body>
 </html>
