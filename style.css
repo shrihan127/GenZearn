@@ -1,4 +1,4 @@
-/* Reset & basics */
+/* ========== RESET ========== */
 * {
   margin: 0;
   padding: 0;
@@ -8,46 +8,47 @@
 
 body {
   background-color: #0046ad; /* GenZearn blue */
-  color: white;
+  color: #fff;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
-/* Navbar */
+/* ========== NAVBAR ========== */
 .navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 50px;
   background-color: #003a92;
+  padding: 15px 50px;
   position: sticky;
   top: 0;
   z-index: 100;
+  flex-wrap: wrap;
 }
 
 .logo {
   display: flex;
   align-items: center;
-  gap: 10px;
   text-decoration: none;
   color: white;
+  gap: 10px;
 }
 
 .logo img {
-  height: 45px;
-  width: 45px;
-  border-radius: 8px;
+  height: 50px;
+  width: 50px;
 }
 
 .site-name {
-  font-size: 1.4rem;
+  font-size: 1.6rem;
   font-weight: 600;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
 }
 
 .nav-links {
   display: flex;
+  flex-wrap: wrap;
   gap: 25px;
 }
 
@@ -56,6 +57,7 @@ body {
   text-decoration: none;
   font-weight: 500;
   transition: 0.3s;
+  font-size: 1rem;
 }
 
 .nav-links a:hover,
@@ -63,33 +65,35 @@ body {
   color: #ffd700;
 }
 
-/* Hero Section */
+/* ========== HERO SECTION ========== */
 .hero {
   text-align: center;
   padding: 80px 20px;
+  background: linear-gradient(to bottom, #0046ad 60%, #003a92);
+  flex: 1;
 }
 
 .hero h2 {
   font-size: 3rem;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
   animation: fadeIn 1.5s ease;
 }
 
 .hero p {
   font-size: 1.2rem;
-  margin-bottom: 25px;
+  max-width: 600px;
+  margin: 0 auto 25px;
+  line-height: 1.5;
   animation: fadeIn 2s ease;
 }
 
 .cta {
-  background-color: white;
+  background-color: #fff;
   color: #0046ad;
-  border: none;
   padding: 12px 30px;
-  font-size: 1rem;
   border-radius: 30px;
-  cursor: pointer;
   text-decoration: none;
+  font-weight: 600;
   transition: 0.3s;
 }
 
@@ -98,78 +102,99 @@ body {
   color: #003a92;
 }
 
-/* Form Sections (Login, Signup, Become Tutor) */
-.form-section {
-  background-color: white;
-  color: #003a92;
-  margin: 60px auto;
-  padding: 40px 30px;
-  border-radius: 15px;
-  width: 90%;
-  max-width: 450px;
+/* ========== ABOUT SECTION ========== */
+.about {
   text-align: center;
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
-  animation: fadeIn 1s ease;
+  padding: 60px 20px;
+  background-color: #0046ad;
+  max-width: 800px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.about h3 {
+  font-size: 2rem;
+  margin-bottom: 15px;
+  color: #ffd700;
+}
+
+/* ========== FORM SECTIONS (login/signup/become tutor) ========== */
+.form-section {
+  background-color: #0046ad;
+  text-align: center;
+  padding: 80px 20px;
+  flex: 1;
 }
 
 .form-section h2 {
-  margin-bottom: 10px;
-  color: #0046ad;
-}
-
-.form-section .subtitle {
-  color: #555;
-  font-size: 0.95rem;
+  font-size: 2.2rem;
   margin-bottom: 20px;
 }
 
-form input,
-form textarea {
+.form-section p {
+  margin-bottom: 20px;
+}
+
+.form-section form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.form-section input,
+.form-section textarea {
   width: 100%;
   padding: 12px;
-  margin: 10px 0;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  font-size: 1rem;
-}
-
-form textarea {
-  resize: none;
-  height: 80px;
-}
-
-.btn.primary {
-  background-color: #0046ad;
-  color: white;
+  border-radius: 10px;
   border: none;
-  padding: 12px 25px;
   font-size: 1rem;
+  outline: none;
+}
+
+textarea {
+  resize: none;
+  height: 100px;
+}
+
+.btn,
+.btn.primary {
+  background-color: white;
+  color: #0046ad;
+  border: none;
+  padding: 12px 30px;
   border-radius: 30px;
   cursor: pointer;
+  font-weight: 600;
   transition: 0.3s;
 }
 
+.btn:hover,
 .btn.primary:hover {
   background-color: #ffd700;
   color: #003a92;
 }
 
-/* Tutor Cards (connect.html) */
+/* ========== TUTOR PAGE ========== */
 .tutors {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 25px;
-  padding: 40px 20px;
+  gap: 30px;
+  padding: 60px 50px;
+  justify-items: center;
 }
 
 .tutor-card {
-  background-color: white;
-  color: #003a92;
+  background-color: #003a92;
   border-radius: 15px;
   padding: 20px;
   text-align: center;
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
-  transition: transform 0.3s ease;
+  width: 100%;
+  max-width: 280px;
+  transition: 0.3s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
 .tutor-card:hover {
@@ -177,13 +202,26 @@ form textarea {
 }
 
 .tutor-card img {
-  width: 120px;
-  height: 120px;
   border-radius: 50%;
+  height: 120px;
+  width: 120px;
+  object-fit: cover;
   margin-bottom: 10px;
+  border: 3px solid #ffd700;
 }
 
-/* Modal (connect.html) */
+.tutor-card h3 {
+  font-size: 1.3rem;
+  margin: 10px 0;
+  color: #ffd700;
+}
+
+.tutor-card p {
+  font-size: 0.95rem;
+  margin-bottom: 8px;
+}
+
+/* ========== MODAL ========== */
 .modal {
   display: none;
   position: fixed;
@@ -192,61 +230,83 @@ form textarea {
   top: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.6);
+  overflow: auto;
+  background-color: rgba(0,0,0,0.6);
+  justify-content: center;
+  align-items: center;
 }
 
 .modal-content {
-  background-color: white;
-  color: #003a92;
+  background-color: #003a92;
   margin: 10% auto;
-  padding: 25px;
-  border-radius: 10px;
+  padding: 30px;
+  border-radius: 15px;
   width: 90%;
   max-width: 400px;
   text-align: center;
+  position: relative;
+}
+
+.modal-content h2 {
+  margin-bottom: 15px;
+}
+
+.modal-content form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-content input {
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  font-size: 1rem;
 }
 
 .close {
-  float: right;
-  font-size: 1.5rem;
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  font-size: 1.8rem;
   cursor: pointer;
-  color: #003a92;
+  color: #fff;
 }
 
-/* Footer */
+/* ========== FOOTER ========== */
 footer {
-  text-align: center;
-  margin-top: auto;
-  padding: 20px 0;
   background-color: #003a92;
+  text-align: center;
+  padding: 20px 10px;
   font-size: 0.9rem;
+  margin-top: auto;
 }
 
-/* Animations */
+/* ========== ANIMATIONS ========== */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Responsive */
+/* ========== RESPONSIVE ========== */
 @media (max-width: 768px) {
   .navbar {
     flex-direction: column;
-    gap: 10px;
-    padding: 20px;
+    padding: 15px 20px;
+    text-align: center;
   }
 
   .nav-links {
     flex-wrap: wrap;
     justify-content: center;
-    gap: 15px;
   }
 
   .hero h2 {
-    font-size: 2.3rem;
+    font-size: 2.2rem;
   }
 
-  .form-section {
-    width: 95%;
+  .hero p {
+    font-size: 1rem;
   }
 }
