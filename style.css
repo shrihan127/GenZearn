@@ -30,22 +30,25 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+  text-decoration: none;
+  color: white;
 }
 
 .logo img {
-  height: 50px;
-  width: 50px;
+  height: 45px;
+  width: 45px;
+  border-radius: 8px;
 }
 
-.logo h1 {
-  font-size: 1.5rem;
-  letter-spacing: 1px;
+.site-name {
+  font-size: 1.4rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 .nav-links {
-  list-style: none;
   display: flex;
-  gap: 30px;
+  gap: 25px;
 }
 
 .nav-links a {
@@ -55,15 +58,15 @@ body {
   transition: 0.3s;
 }
 
-.nav-links a:hover {
+.nav-links a:hover,
+.nav-links a.active {
   color: #ffd700;
 }
 
 /* Hero Section */
 .hero {
   text-align: center;
-  margin-top: 100px;
-  padding: 40px;
+  padding: 80px 20px;
 }
 
 .hero h2 {
@@ -74,7 +77,7 @@ body {
 
 .hero p {
   font-size: 1.2rem;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
   animation: fadeIn 2s ease;
 }
 
@@ -95,6 +98,121 @@ body {
   color: #003a92;
 }
 
+/* Form Sections (Login, Signup, Become Tutor) */
+.form-section {
+  background-color: white;
+  color: #003a92;
+  margin: 60px auto;
+  padding: 40px 30px;
+  border-radius: 15px;
+  width: 90%;
+  max-width: 450px;
+  text-align: center;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 1s ease;
+}
+
+.form-section h2 {
+  margin-bottom: 10px;
+  color: #0046ad;
+}
+
+.form-section .subtitle {
+  color: #555;
+  font-size: 0.95rem;
+  margin-bottom: 20px;
+}
+
+form input,
+form textarea {
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+}
+
+form textarea {
+  resize: none;
+  height: 80px;
+}
+
+.btn.primary {
+  background-color: #0046ad;
+  color: white;
+  border: none;
+  padding: 12px 25px;
+  font-size: 1rem;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.btn.primary:hover {
+  background-color: #ffd700;
+  color: #003a92;
+}
+
+/* Tutor Cards (connect.html) */
+.tutors {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 25px;
+  padding: 40px 20px;
+}
+
+.tutor-card {
+  background-color: white;
+  color: #003a92;
+  border-radius: 15px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease;
+}
+
+.tutor-card:hover {
+  transform: translateY(-5px);
+}
+
+.tutor-card img {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  margin-bottom: 10px;
+}
+
+/* Modal (connect.html) */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 200;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+.modal-content {
+  background-color: white;
+  color: #003a92;
+  margin: 10% auto;
+  padding: 25px;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.close {
+  float: right;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #003a92;
+}
+
 /* Footer */
 footer {
   text-align: center;
@@ -108,4 +226,27 @@ footer {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .navbar {
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px;
+  }
+
+  .nav-links {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+  }
+
+  .hero h2 {
+    font-size: 2.3rem;
+  }
+
+  .form-section {
+    width: 95%;
+  }
 }
