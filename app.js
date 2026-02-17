@@ -106,8 +106,22 @@
       const dedupeKey = `${email}|${createdAt}`;
       if (seen.has(dedupeKey)) return false;
       seen.add(dedupeKey);
-      return Boolean(application.fullName && application.subjects && Number(application.hourlyRate));
+      return Boolean(
+        application.fullName
+          && application.subjects
+          && application.qualifications
+          && application.qualificationsVerified === true
+          && Number(application.hourlyRate)
+      );
     });
+  }
+
+  function hasValidQualifications(qualifications) {
+    const value = String(qualifications || '').trim();
+    if (value.length < 8) return false;
+
+    const recognizedCredentialPattern = /\b(degree|b\.?a\.?|b\.?s\.?|m\.?a\.?|m\.?s\.?|phd|doctorate|certified|certification|license|licensed|teaching credential|pgce)\b/i;
+    return recognizedCredentialPattern.test(value);
   }
 
   function renderTutorList(tutors) {
@@ -124,6 +138,7 @@
         const rate = Number(tutor.hourlyRate);
         const subject = String(tutor.subjects);
         const fullName = String(tutor.fullName);
+        const qualifications = String(tutor.qualifications);
         const experience = tutor.experience ? `<p><strong>Experience:</strong> ${tutor.experience}</p>` : '';
         const verificationLabel = tutor.verification
           ? `<p class="verification-pill ${tutor.verification.status}">${tutor.verification.message}</p>`
@@ -133,6 +148,7 @@
             <img src="https://via.placeholder.com/120" alt="Tutor ${fullName}">
             <h3>${fullName}</h3>
             <p><strong>Subject:</strong> ${subject}</p>
+            <p><strong>Qualifications:</strong> ${qualifications}</p>
             <p><strong>Rate:</strong> $${rate} / hour</p>
             ${experience}
             ${verificationLabel}
@@ -432,6 +448,7 @@
         fullName: form.elements.fullName.value.trim(),
         email: form.elements.email.value.trim().toLowerCase(),
         subjects: form.elements.subjects.value.trim(),
+        qualifications: form.elements.qualifications.value.trim(),
         hourlyRate: Number(form.elements.hourlyRate.value),
         paymentMethod: form.elements.paymentMethod.value.trim(),
         experience: form.elements.experience.value.trim(),
@@ -441,11 +458,12 @@
         createdAt: new Date().toISOString()
       };
 
-      application.verification = qualificationReviewBot(application);
-      if (application.verification.status !== 'verified') {
-        setStatus(status, 'Please provide qualification proof or a referral before submitting.', 'error');
+      if (!hasValidQualifications(application.qualifications)) {
+        setStatus(status, 'Please enter valid qualifications (degree, certification, or teaching license).', 'error');
         return;
       }
+
+      application.qualificationsVerified = true;
 
       const apps = loadJson(STORAGE_KEYS.tutorApps, []);
       apps.push(application);
