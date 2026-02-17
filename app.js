@@ -465,7 +465,6 @@
         hourlyRate: Number(form.elements.hourlyRate.value),
         paymentMethod: form.elements.paymentMethod.value.trim(),
         experience: form.elements.experience.value.trim(),
-        qualificationType: form.elements.qualificationType.value.trim(),
         qualificationProof: form.elements.qualificationProof.value.trim(),
         referral: form.elements.referral.value.trim(),
         createdAt: new Date().toISOString()
