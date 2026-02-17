@@ -89,6 +89,80 @@
     await db.ref('sessionRequests').push(request);
   }
 
+  async function getTutorApplications() {
+    const localApplications = loadJson(STORAGE_KEYS.tutorApps, []);
+    if (!db) return localApplications;
+
+    const snapshot = await db.ref('tutorApplications').once('value');
+    const remoteApplications = Object.values(snapshot.val() || {});
+    return [...remoteApplications, ...localApplications];
+  }
+
+  function normalizeTutorList(applications) {
+    const seen = new Set();
+    return applications.filter((application) => {
+      const email = (application.email || '').trim().toLowerCase();
+      const createdAt = application.createdAt || '';
+      const dedupeKey = `${email}|${createdAt}`;
+      if (seen.has(dedupeKey)) return false;
+      seen.add(dedupeKey);
+      return Boolean(application.fullName && application.subjects && Number(application.hourlyRate));
+    });
+  }
+
+  function renderTutorList(tutors) {
+    const tutorList = document.getElementById('tutorList');
+    if (!tutorList) return;
+
+    if (!tutors.length) {
+      tutorList.innerHTML = '<p class="status-message">No tutors are available yet. Check back soon.</p>';
+      return;
+    }
+
+    tutorList.innerHTML = tutors
+      .map((tutor, index) => {
+        const rate = Number(tutor.hourlyRate);
+        const subject = String(tutor.subjects);
+        const fullName = String(tutor.fullName);
+        const experience = tutor.experience ? `<p><strong>Experience:</strong> ${tutor.experience}</p>` : '';
+        return `
+          <div class="tutor-card">
+            <img src="https://via.placeholder.com/120" alt="Tutor ${fullName}">
+            <h3>${fullName}</h3>
+            <p><strong>Subject:</strong> ${subject}</p>
+            <p><strong>Rate:</strong> $${rate} / hour</p>
+            ${experience}
+            <button class="btn primary" type="button" data-tutor-index="${index}">Book Session</button>
+          </div>
+        `;
+      })
+      .join('');
+
+    const buttons = tutorList.querySelectorAll('[data-tutor-index]');
+    buttons.forEach((button) => {
+      button.addEventListener('click', function () {
+        const tutor = tutors[Number(button.dataset.tutorIndex)];
+        if (!tutor) return;
+        openModal(String(tutor.fullName), Number(tutor.hourlyRate), String(tutor.subjects));
+      });
+    });
+  }
+
+  async function initTutorDirectory() {
+    const tutorList = document.getElementById('tutorList');
+    if (!tutorList) return;
+
+    tutorList.innerHTML = '<p class="status-message">Loading tutors...</p>';
+
+    try {
+      const applications = await getTutorApplications();
+      const tutors = normalizeTutorList(applications).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      renderTutorList(tutors);
+    } catch {
+      tutorList.innerHTML = '<p class="status-message error">Could not load tutors right now. Please refresh and try again.</p>';
+    }
+  }
+
   function findLocalUserByEmail(email) {
     const users = loadJson(STORAGE_KEYS.users, []);
     return users.find((u) => u.email === email) || null;
@@ -403,6 +477,7 @@
     initLogin();
     initForgotPassword();
     initTutorApplication();
+    initTutorDirectory();
     initSessionRequests();
   });
 })();
