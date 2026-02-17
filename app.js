@@ -125,6 +125,9 @@
         const subject = String(tutor.subjects);
         const fullName = String(tutor.fullName);
         const experience = tutor.experience ? `<p><strong>Experience:</strong> ${tutor.experience}</p>` : '';
+        const verificationLabel = tutor.verification
+          ? `<p class="verification-pill ${tutor.verification.status}">${tutor.verification.message}</p>`
+          : '<p class="verification-pill pending">Qualification review pending</p>';
         return `
           <div class="tutor-card">
             <img src="https://via.placeholder.com/120" alt="Tutor ${fullName}">
@@ -132,6 +135,7 @@
             <p><strong>Subject:</strong> ${subject}</p>
             <p><strong>Rate:</strong> $${rate} / hour</p>
             ${experience}
+            ${verificationLabel}
             <button class="btn primary" type="button" data-tutor-index="${index}">Book Session</button>
           </div>
         `;
@@ -401,6 +405,27 @@
       form.elements.email.value = current.email;
     }
 
+    function qualificationReviewBot(application) {
+      const qualificationProof = application.qualificationProof;
+      const referral = application.referral;
+      const hasProof = qualificationProof.length >= 8;
+      const hasReferral = referral.length >= 8;
+
+      if (hasProof || hasReferral) {
+        return {
+          status: 'verified',
+          message: hasProof
+            ? 'Qualification bot: verified with proof details'
+            : 'Qualification bot: verified via referral'
+        };
+      }
+
+      return {
+        status: 'rejected',
+        message: 'Qualification bot: add proof details or a referral'
+      };
+    }
+
     form.addEventListener('submit', async function (event) {
       event.preventDefault();
       const application = {
@@ -410,8 +435,17 @@
         hourlyRate: Number(form.elements.hourlyRate.value),
         paymentMethod: form.elements.paymentMethod.value.trim(),
         experience: form.elements.experience.value.trim(),
+        qualificationType: form.elements.qualificationType.value.trim(),
+        qualificationProof: form.elements.qualificationProof.value.trim(),
+        referral: form.elements.referral.value.trim(),
         createdAt: new Date().toISOString()
       };
+
+      application.verification = qualificationReviewBot(application);
+      if (application.verification.status !== 'verified') {
+        setStatus(status, 'Please provide qualification proof or a referral before submitting.', 'error');
+        return;
+      }
 
       const apps = loadJson(STORAGE_KEYS.tutorApps, []);
       apps.push(application);
@@ -420,7 +454,7 @@
       try {
         await createTutorApplication(application);
         form.reset();
-        setStatus(status, 'Application submitted! We will contact you soon.', 'success');
+        setStatus(status, 'Application submitted and qualification bot marked it as verified.', 'success');
       } catch {
         setStatus(status, 'Could not submit application right now. Please try again.', 'error');
       }
