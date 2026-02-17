@@ -98,8 +98,11 @@
     if (!form) return;
 
     const status = document.getElementById('signupStatus');
+    const submitButton = form.querySelector('button[type="submit"]');
     form.addEventListener('submit', async function (event) {
       event.preventDefault();
+      if (submitButton) submitButton.disabled = true;
+
       const name = form.elements.fullName.value.trim();
       const email = form.elements.email.value.trim().toLowerCase();
       const password = form.elements.password.value;
@@ -109,20 +112,33 @@
       const users = loadJson(STORAGE_KEYS.users, []);
       if (users.some((u) => u.email === email)) {
         setStatus(status, 'An account with this email already exists. Please log in.', 'error');
+        if (submitButton) submitButton.disabled = false;
         return;
       }
 
       try {
-        const existingRemoteUser = await findUserByEmail(email);
-        if (existingRemoteUser) {
-          setStatus(status, 'An account with this email already exists. Please log in.', 'error');
-          return;
+        if (db) {
+          try {
+            const existingRemoteUser = await findUserByEmail(email);
+            if (existingRemoteUser) {
+              setStatus(status, 'An account with this email already exists. Please log in.', 'error');
+              return;
+            }
+          } catch {
+            setStatus(status, 'Continuing with local account creation (cloud sync unavailable).', 'error');
+          }
         }
 
         const user = { name, email, password, role, primarySubject, createdAt: new Date().toISOString() };
         users.push(user);
         saveJson(STORAGE_KEYS.users, users);
-        await createUserRecord(user);
+
+        try {
+          await createUserRecord(user);
+        } catch {
+          // Keep local signup working even if cloud sync fails.
+        }
+
         setCurrentUser({ name: user.name, email: user.email, role: user.role });
 
         setStatus(status, 'Account created successfully! Redirecting to tutors...', 'success');
@@ -131,6 +147,8 @@
         }, 800);
       } catch {
         setStatus(status, 'Could not create account right now. Please try again.', 'error');
+      } finally {
+        if (submitButton) submitButton.disabled = false;
       }
     });
   }
