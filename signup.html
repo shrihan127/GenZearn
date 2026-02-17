@@ -25,17 +25,19 @@
 
   <section class="form-section">
     <h2>Create Your Account</h2>
-    <form>
-      <input type="text" placeholder="Full Name" required />
-      <input type="email" placeholder="Email" required />
-      <input type="password" placeholder="Password" required />
+    <form id="signupForm">
+      <input type="text" name="fullName" placeholder="Full Name" required />
+      <input type="email" name="email" placeholder="Email" required />
+      <input type="password" name="password" placeholder="Password" minlength="6" required />
       <button type="submit" class="btn primary">Sign Up</button>
     </form>
+    <p id="signupStatus" class="status-message" aria-live="polite"></p>
     <p>Already have an account? <a href="login.html">Log in</a></p>
   </section>
 
   <footer>
     <p>© 2025 GenZearn</p>
   </footer>
+  <script src="app.js" defer></script>
 </body>
 </html>

@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- Header -->
   <header>
     <div class="navbar">
       <a href="index.html" class="logo">
@@ -20,18 +19,15 @@
         <a href="become-tutor.html">Become a Tutor</a>
         <a href="login.html">Login</a>
         <a href="signup.html">Sign Up</a>
-       
       </nav>
     </div>
   </header>
 
-  <!-- Hero -->
   <section class="hero" style="padding: 2rem 1rem;">
     <h2>Find Your Perfect Tutor</h2>
     <p>Browse top-rated tutors from around the world. Learn. Earn. Grow.</p>
   </section>
 
-  <!-- Tutors Grid -->
   <section class="tutors">
     <div class="tutor-card">
       <img src="https://via.placeholder.com/120" alt="Tutor 1">
@@ -66,26 +62,24 @@
     </div>
   </section>
 
-  <!-- Modal -->
   <div id="modal" class="modal">
     <div class="modal-content">
       <span class="close" onclick="closeModal()">&times;</span>
       <h2>Request a Session with <span id="tutorName"></span></h2>
-      <form onsubmit="submitRequest(event)">
-        <input type="text" placeholder="Your Name" required />
-        <input type="email" placeholder="Your Email" required />
-        <input type="text" placeholder="Subject / Topic" required />
+      <form id="sessionRequestForm" onsubmit="submitRequest(event)">
+        <input type="text" name="name" placeholder="Your Name" required />
+        <input type="email" name="email" placeholder="Your Email" required />
+        <input type="text" name="topic" placeholder="Subject / Topic" required />
         <button type="submit" class="btn primary">Submit Request</button>
       </form>
+      <p id="sessionRequestStatus" class="status-message" aria-live="polite"></p>
     </div>
   </div>
 
-  <!-- Footer -->
   <footer>
     <p>© 2025 GenZearn. All rights reserved.</p>
   </footer>
 
-  <!-- JS -->
   <script>
     function openModal(tutor) {
       document.getElementById('tutorName').textContent = tutor;
@@ -96,16 +90,11 @@
       document.getElementById('modal').style.display = 'none';
     }
 
-    function submitRequest(event) {
-      event.preventDefault();
-      alert("Your session request has been submitted!");
-      closeModal();
-    }
-
     window.onclick = function(event) {
       const modal = document.getElementById('modal');
-      if (event.target == modal) modal.style.display = 'none';
+      if (event.target === modal) modal.style.display = 'none';
     };
   </script>
+  <script src="app.js" defer></script>
 </body>
 </html>

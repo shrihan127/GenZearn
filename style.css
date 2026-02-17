@@ -310,3 +310,44 @@ footer {
     font-size: 1rem;
   }
 }
+
+.status-message {
+  min-height: 1.4rem;
+  font-weight: 600;
+}
+
+.status-message.success {
+  color: #9bffb2;
+}
+
+.status-message.error {
+  color: #ffd1d1;
+}
+
+.account-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-chip {
+  background: rgba(255,255,255,0.15);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+}
+
+.logout-btn {
+  border: 1px solid #fff;
+  background: transparent;
+  color: #fff;
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  color: #003a92;
+  background: #ffd700;
+  border-color: #ffd700;
+}

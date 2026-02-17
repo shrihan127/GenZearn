@@ -26,17 +26,19 @@
   <section class="form-section">
     <h2>Join as a Tutor</h2>
     <p>Share your knowledge with students and earn while you teach!</p>
-    <form>
-      <input type="text" placeholder="Full Name" required />
-      <input type="email" placeholder="Email" required />
-      <input type="text" placeholder="Subjects You Teach" required />
-      <textarea placeholder="Brief Description of Your Experience" required></textarea>
+    <form id="tutorApplicationForm">
+      <input type="text" name="fullName" placeholder="Full Name" required />
+      <input type="email" name="email" placeholder="Email" required />
+      <input type="text" name="subjects" placeholder="Subjects You Teach" required />
+      <textarea name="experience" placeholder="Brief Description of Your Experience" required></textarea>
       <button type="submit" class="btn primary">Submit Application</button>
     </form>
+    <p id="tutorApplicationStatus" class="status-message" aria-live="polite"></p>
   </section>
 
   <footer>
     <p>© 2025 GenZearn</p>
   </footer>
+  <script src="app.js" defer></script>
 </body>
 </html>
