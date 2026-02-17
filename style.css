@@ -266,6 +266,34 @@ textarea {
   margin-bottom: 8px;
 }
 
+
+.verification-pill {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin: 8px auto 12px;
+  width: fit-content;
+}
+
+.verification-pill.verified {
+  background: rgba(155, 255, 178, 0.18);
+  color: #9bffb2;
+  border: 1px solid rgba(155, 255, 178, 0.6);
+}
+
+.verification-pill.pending {
+  background: rgba(255, 209, 209, 0.12);
+  color: #ffd1d1;
+  border: 1px solid rgba(255, 209, 209, 0.45);
+}
+
+.verification-pill.rejected {
+  background: rgba(255, 209, 209, 0.12);
+  color: #ffd1d1;
+  border: 1px solid rgba(255, 209, 209, 0.45);
+}
+
 .modal {
   display: none;
   position: fixed;
