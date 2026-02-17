@@ -15,21 +15,28 @@
       </a>
       <nav class="nav-links">
         <a href="index.html">Home</a>
-        <a href="connect.html">Tutors</a>
-        <a href="become-tutor.html">Become a Tutor</a>
-        <a href="login.html">Login</a>
+        <a href="connect.html">Find Tutors</a>
+        <a href="become-tutor.html">Teach on GenZearn</a>
         <a href="signup.html" class="active">Sign Up</a>
+        <a href="login.html">Login</a>
       </nav>
     </div>
   </header>
 
   <section class="form-section">
-    <h2>Create Your Account</h2>
-    <form id="signupForm">
-      <input type="text" name="fullName" placeholder="Full Name" required />
-      <input type="email" name="email" placeholder="Email" required />
-      <input type="password" name="password" placeholder="Password" minlength="6" required />
-      <button type="submit" class="btn primary">Sign Up</button>
+    <h2>Create Your GenZearn Account</h2>
+    <p>Choose whether you're joining as a student or tutor.</p>
+    <form>
+      <input type="text" placeholder="Full Name" required />
+      <input type="email" placeholder="Email" required />
+      <input type="password" placeholder="Password" required />
+      <select required>
+        <option value="" disabled selected>Sign up as...</option>
+        <option>Student (I want to learn)</option>
+        <option>Tutor (I want to teach)</option>
+      </select>
+      <input type="text" placeholder="Primary Subject of Interest (or Teaching Subject)" required />
+      <button type="submit" class="btn primary">Create Account</button>
     </form>
     <p id="signupStatus" class="status-message" aria-live="polite"></p>
     <p>Already have an account? <a href="login.html">Log in</a></p>
