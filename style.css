@@ -267,6 +267,25 @@ textarea {
 }
 
 
+.tutor-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.btn.secondary {
+  background: transparent;
+  color: #fff;
+  border: 1px solid #fff;
+}
+
+.btn.secondary:hover {
+  background-color: rgba(255, 255, 255, 0.18);
+  color: #ffd700;
+  border-color: #ffd700;
+}
+
 .verification-pill {
   border-radius: 999px;
   padding: 6px 10px;
