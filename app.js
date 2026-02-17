@@ -11,6 +11,16 @@
   let db = null;
   let activeResetCode = null;
 
+  function hasUsableFirebaseConfig(config) {
+    if (!config || typeof config !== 'object') return false;
+
+    const requiredKeys = ['apiKey', 'authDomain', 'databaseURL', 'projectId', 'appId'];
+    return requiredKeys.every((key) => {
+      const value = config[key];
+      return typeof value === 'string' && value.trim() !== '' && !value.includes('YOUR_');
+    });
+  }
+
   function loadJson(key, fallback) {
     try {
       return JSON.parse(localStorage.getItem(key)) || fallback;
@@ -38,7 +48,7 @@
   }
 
   function initFirebase() {
-    if (!window.firebase || !window.firebaseConfig) return;
+    if (!window.firebase || !hasUsableFirebaseConfig(window.firebaseConfig)) return;
 
     if (!window.firebase.apps.length) {
       window.firebase.initializeApp(window.firebaseConfig);
