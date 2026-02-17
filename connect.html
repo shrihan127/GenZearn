@@ -70,12 +70,12 @@
     <div class="modal-content">
       <span class="close" onclick="closeModal()">&times;</span>
       <h2>Book with <span id="tutorName"></span></h2>
-      <form onsubmit="submitRequest(event)">
-        <input type="text" placeholder="Your Name" required />
-        <input type="email" placeholder="Your Email" required />
-        <input id="subjectField" type="text" placeholder="Subject / Topic" required />
-        <input id="hoursField" type="number" min="1" max="8" value="1" required onchange="updateTotal()" oninput="updateTotal()" />
-        <select required>
+      <form id="sessionRequestForm" onsubmit="submitRequest(event)">
+        <input type="text" name="name" placeholder="Your Name" required />
+        <input type="email" name="email" placeholder="Your Email" required />
+        <input id="subjectField" name="topic" type="text" placeholder="Subject / Topic" required />
+        <input id="hoursField" name="hours" type="number" min="1" max="8" value="1" required onchange="updateTotal()" oninput="updateTotal()" />
+        <select name="paymentMethod" required>
           <option value="" disabled selected>Payment Method</option>
           <option>Credit / Debit Card</option>
           <option>PayPal</option>
@@ -118,8 +118,6 @@
 
     function submitRequest(event) {
       event.preventDefault();
-      alert('Session booked and payment captured successfully!');
-      closeModal();
     }
 
     window.onclick = function(event) {
@@ -129,6 +127,9 @@
       }
     };
   </script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
   <script src="app.js" defer></script>
 </body>
 </html>

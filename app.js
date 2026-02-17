@@ -6,6 +6,8 @@
     sessionRequests: 'genzearn_session_requests'
   };
 
+  let db = null;
+
   function loadJson(key, fallback) {
     try {
       return JSON.parse(localStorage.getItem(key)) || fallback;
@@ -30,6 +32,41 @@
 
   function setCurrentUser(user) {
     saveJson(STORAGE_KEYS.currentUser, user);
+  }
+
+  function initFirebase() {
+    if (!window.firebase || !window.firebaseConfig) return;
+
+    if (!window.firebase.apps.length) {
+      window.firebase.initializeApp(window.firebaseConfig);
+    }
+    db = window.firebase.database();
+  }
+
+  async function findUserByEmail(email) {
+    if (!db) return null;
+
+    const snapshot = await db.ref('users').orderByChild('email').equalTo(email).limitToFirst(1).once('value');
+    const users = snapshot.val();
+    if (!users) return null;
+
+    const key = Object.keys(users)[0];
+    return { key, ...users[key] };
+  }
+
+  async function createUserRecord(user) {
+    if (!db) return;
+    await db.ref('users').push(user);
+  }
+
+  async function createTutorApplication(application) {
+    if (!db) return;
+    await db.ref('tutorApplications').push(application);
+  }
+
+  async function createSessionRequest(request) {
+    if (!db) return;
+    await db.ref('sessionRequests').push(request);
   }
 
   function updateAuthUI() {
@@ -61,11 +98,13 @@
     if (!form) return;
 
     const status = document.getElementById('signupStatus');
-    form.addEventListener('submit', function (event) {
+    form.addEventListener('submit', async function (event) {
       event.preventDefault();
       const name = form.elements.fullName.value.trim();
       const email = form.elements.email.value.trim().toLowerCase();
       const password = form.elements.password.value;
+      const role = form.elements.role.value;
+      const primarySubject = form.elements.primarySubject.value.trim();
 
       const users = loadJson(STORAGE_KEYS.users, []);
       if (users.some((u) => u.email === email)) {
@@ -73,15 +112,26 @@
         return;
       }
 
-      const user = { name, email, password, createdAt: new Date().toISOString() };
-      users.push(user);
-      saveJson(STORAGE_KEYS.users, users);
-      setCurrentUser({ name: user.name, email: user.email });
+      try {
+        const existingRemoteUser = await findUserByEmail(email);
+        if (existingRemoteUser) {
+          setStatus(status, 'An account with this email already exists. Please log in.', 'error');
+          return;
+        }
 
-      setStatus(status, 'Account created successfully! Redirecting to tutors...', 'success');
-      setTimeout(() => {
-        window.location.href = 'connect.html';
-      }, 800);
+        const user = { name, email, password, role, primarySubject, createdAt: new Date().toISOString() };
+        users.push(user);
+        saveJson(STORAGE_KEYS.users, users);
+        await createUserRecord(user);
+        setCurrentUser({ name: user.name, email: user.email, role: user.role });
+
+        setStatus(status, 'Account created successfully! Redirecting to tutors...', 'success');
+        setTimeout(() => {
+          window.location.href = 'connect.html';
+        }, 800);
+      } catch {
+        setStatus(status, 'Could not create account right now. Please try again.', 'error');
+      }
     });
   }
 
@@ -90,23 +140,31 @@
     if (!form) return;
 
     const status = document.getElementById('loginStatus');
-    form.addEventListener('submit', function (event) {
+    form.addEventListener('submit', async function (event) {
       event.preventDefault();
       const email = form.elements.email.value.trim().toLowerCase();
       const password = form.elements.password.value;
 
-      const users = loadJson(STORAGE_KEYS.users, []);
-      const user = users.find((u) => u.email === email && u.password === password);
-      if (!user) {
-        setStatus(status, 'Invalid email or password. Try signing up first.', 'error');
-        return;
-      }
+      try {
+        const remoteUser = await findUserByEmail(email);
+        const localUsers = loadJson(STORAGE_KEYS.users, []);
+        const localUser = localUsers.find((u) => u.email === email && u.password === password);
+        const matchingRemoteUser = remoteUser && remoteUser.password === password ? remoteUser : null;
+        const user = matchingRemoteUser || localUser;
 
-      setCurrentUser({ name: user.name, email: user.email });
-      setStatus(status, 'Logged in successfully! Redirecting...', 'success');
-      setTimeout(() => {
-        window.location.href = 'connect.html';
-      }, 800);
+        if (!user) {
+          setStatus(status, 'Invalid email or password. Try signing up first.', 'error');
+          return;
+        }
+
+        setCurrentUser({ name: user.name, email: user.email, role: user.role || '' });
+        setStatus(status, 'Logged in successfully! Redirecting...', 'success');
+        setTimeout(() => {
+          window.location.href = 'connect.html';
+        }, 800);
+      } catch {
+        setStatus(status, 'Could not log in right now. Please try again.', 'error');
+      }
     });
   }
 
@@ -121,19 +179,29 @@
       form.elements.email.value = current.email;
     }
 
-    form.addEventListener('submit', function (event) {
+    form.addEventListener('submit', async function (event) {
       event.preventDefault();
-      const apps = loadJson(STORAGE_KEYS.tutorApps, []);
-      apps.push({
+      const application = {
         fullName: form.elements.fullName.value.trim(),
         email: form.elements.email.value.trim().toLowerCase(),
         subjects: form.elements.subjects.value.trim(),
+        hourlyRate: Number(form.elements.hourlyRate.value),
+        paymentMethod: form.elements.paymentMethod.value.trim(),
         experience: form.elements.experience.value.trim(),
         createdAt: new Date().toISOString()
-      });
+      };
+
+      const apps = loadJson(STORAGE_KEYS.tutorApps, []);
+      apps.push(application);
       saveJson(STORAGE_KEYS.tutorApps, apps);
-      form.reset();
-      setStatus(status, 'Application submitted! We will contact you soon.', 'success');
+
+      try {
+        await createTutorApplication(application);
+        form.reset();
+        setStatus(status, 'Application submitted! We will contact you soon.', 'success');
+      } catch {
+        setStatus(status, 'Could not submit application right now. Please try again.', 'error');
+      }
     });
   }
 
@@ -148,28 +216,40 @@
       modalForm.elements.email.value = current.email;
     }
 
-    window.submitRequest = function (event) {
+    window.submitRequest = async function (event) {
       event.preventDefault();
       const tutor = document.getElementById('tutorName').textContent;
-      const requests = loadJson(STORAGE_KEYS.sessionRequests, []);
-      requests.push({
+      const request = {
         tutor,
         name: modalForm.elements.name.value.trim(),
         email: modalForm.elements.email.value.trim().toLowerCase(),
         topic: modalForm.elements.topic.value.trim(),
+        hours: Number(modalForm.elements.hours.value),
+        paymentMethod: modalForm.elements.paymentMethod.value,
+        totalCharge: document.getElementById('totalCharge').textContent,
         createdAt: new Date().toISOString()
-      });
+      };
+
+      const requests = loadJson(STORAGE_KEYS.sessionRequests, []);
+      requests.push(request);
       saveJson(STORAGE_KEYS.sessionRequests, requests);
-      setStatus(status, `Request sent to ${tutor}!`, 'success');
-      modalForm.reset();
-      setTimeout(() => {
-        if (window.closeModal) window.closeModal();
-        status.textContent = '';
-      }, 900);
+
+      try {
+        await createSessionRequest(request);
+        setStatus(status, `Request sent to ${tutor}!`, 'success');
+        modalForm.reset();
+        setTimeout(() => {
+          if (window.closeModal) window.closeModal();
+          status.textContent = '';
+        }, 900);
+      } catch {
+        setStatus(status, 'Could not submit request right now. Please try again.', 'error');
+      }
     };
   }
 
   document.addEventListener('DOMContentLoaded', function () {
+    initFirebase();
     updateAuthUI();
     initSignup();
     initLogin();
