@@ -28,43 +28,7 @@
     <p>Pick a tutor, request a lesson, and pay securely with clear upfront pricing before you confirm.</p>
   </section>
 
-  <section class="tutors">
-    <div class="tutor-card">
-      <img src="https://via.placeholder.com/120" alt="Tutor Emma Johnson">
-      <h3>Emma Johnson</h3>
-      <p><strong>Subject:</strong> Math & Physics</p>
-      <p><strong>Rate:</strong> $40 / hour</p>
-      <p><strong>Rating:</strong> ⭐⭐⭐⭐⭐ (4.9)</p>
-      <button class="btn primary" onclick="openModal('Emma Johnson', 40, 'Math & Physics')">Book Session</button>
-    </div>
-
-    <div class="tutor-card">
-      <img src="https://via.placeholder.com/120" alt="Tutor James Patel">
-      <h3>James Patel</h3>
-      <p><strong>Subject:</strong> English & Writing</p>
-      <p><strong>Rate:</strong> $32 / hour</p>
-      <p><strong>Rating:</strong> ⭐⭐⭐⭐☆ (4.7)</p>
-      <button class="btn primary" onclick="openModal('James Patel', 32, 'English & Writing')">Book Session</button>
-    </div>
-
-    <div class="tutor-card">
-      <img src="https://via.placeholder.com/120" alt="Tutor Sophia Lin">
-      <h3>Sophia Lin</h3>
-      <p><strong>Subject:</strong> Chemistry</p>
-      <p><strong>Rate:</strong> $45 / hour</p>
-      <p><strong>Rating:</strong> ⭐⭐⭐⭐⭐ (5.0)</p>
-      <button class="btn primary" onclick="openModal('Sophia Lin', 45, 'Chemistry')">Book Session</button>
-    </div>
-
-    <div class="tutor-card">
-      <img src="https://via.placeholder.com/120" alt="Tutor Michael Brown">
-      <h3>Michael Brown</h3>
-      <p><strong>Subject:</strong> Coding & Computer Science</p>
-      <p><strong>Rate:</strong> $50 / hour</p>
-      <p><strong>Rating:</strong> ⭐⭐⭐⭐☆ (4.8)</p>
-      <button class="btn primary" onclick="openModal('Michael Brown', 50, 'Coding & Computer Science')">Book Session</button>
-    </div>
-  </section>
+  <section class="tutors" id="tutorList" aria-live="polite"></section>
 
   <div id="modal" class="modal">
     <div class="modal-content">
