@@ -434,27 +434,6 @@
       form.elements.email.value = current.email;
     }
 
-    function qualificationReviewBot(application) {
-      const qualificationProof = application.qualificationProof;
-      const referral = application.referral;
-      const hasProof = qualificationProof.length >= 8;
-      const hasReferral = referral.length >= 8;
-
-      if (hasProof || hasReferral) {
-        return {
-          status: 'verified',
-          message: hasProof
-            ? 'Qualification bot: verified with proof details'
-            : 'Qualification bot: verified via referral'
-        };
-      }
-
-      return {
-        status: 'rejected',
-        message: 'Qualification bot: add proof details or a referral'
-      };
-    }
-
     form.addEventListener('submit', async function (event) {
       event.preventDefault();
       const application = {
@@ -465,7 +444,6 @@
         hourlyRate: Number(form.elements.hourlyRate.value),
         paymentMethod: form.elements.paymentMethod.value.trim(),
         experience: form.elements.experience.value.trim(),
-        qualificationType: form.elements.qualificationType.value.trim(),
         qualificationProof: form.elements.qualificationProof.value.trim(),
         referral: form.elements.referral.value.trim(),
         createdAt: new Date().toISOString()
