@@ -6,7 +6,10 @@
     sessionRequests: 'genzearn_session_requests'
   };
 
+  const RESET_CODE_EXPIRY_MS = 10 * 60 * 1000;
+
   let db = null;
+  let activeResetCode = null;
 
   function loadJson(key, fallback) {
     try {
@@ -54,6 +57,13 @@
     return { key, ...users[key] };
   }
 
+  async function updateRemoteUserPassword(email, newPassword) {
+    if (!db) return;
+    const user = await findUserByEmail(email);
+    if (!user || !user.key) return;
+    await db.ref(`users/${user.key}/password`).set(newPassword);
+  }
+
   async function createUserRecord(user) {
     if (!db) return;
     await db.ref('users').push(user);
@@ -67,6 +77,25 @@
   async function createSessionRequest(request) {
     if (!db) return;
     await db.ref('sessionRequests').push(request);
+  }
+
+  function findLocalUserByEmail(email) {
+    const users = loadJson(STORAGE_KEYS.users, []);
+    return users.find((u) => u.email === email) || null;
+  }
+
+  function updateLocalPassword(email, newPassword) {
+    const users = loadJson(STORAGE_KEYS.users, []);
+    const userIndex = users.findIndex((u) => u.email === email);
+    if (userIndex === -1) return false;
+
+    users[userIndex].password = newPassword;
+    saveJson(STORAGE_KEYS.users, users);
+    return true;
+  }
+
+  function createVerificationCode() {
+    return String(Math.floor(100000 + Math.random() * 900000));
   }
 
   function updateAuthUI() {
@@ -186,6 +215,97 @@
     });
   }
 
+  function initForgotPassword() {
+    const toggleBtn = document.getElementById('forgotPasswordBtn');
+    const panel = document.getElementById('forgotPasswordPanel');
+    const sendCodeForm = document.getElementById('sendCodeForm');
+    const resetPasswordForm = document.getElementById('resetPasswordForm');
+    const status = document.getElementById('forgotPasswordStatus');
+
+    if (!toggleBtn || !panel || !sendCodeForm || !resetPasswordForm || !status) return;
+
+    toggleBtn.addEventListener('click', function () {
+      panel.classList.toggle('hidden');
+      setStatus(status, '', '');
+    });
+
+    sendCodeForm.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      const email = sendCodeForm.elements.resetEmail.value.trim().toLowerCase();
+      if (!email) {
+        setStatus(status, 'Enter your account email first.', 'error');
+        return;
+      }
+
+      try {
+        const remoteUser = await findUserByEmail(email);
+        const localUser = findLocalUserByEmail(email);
+        if (!remoteUser && !localUser) {
+          setStatus(status, 'No account exists for that email.', 'error');
+          return;
+        }
+
+        const code = createVerificationCode();
+        activeResetCode = {
+          email,
+          code,
+          expiresAt: Date.now() + RESET_CODE_EXPIRY_MS
+        };
+
+        resetPasswordForm.classList.remove('hidden');
+        setStatus(status, `Verification code sent to ${email}. (Demo code: ${code})`, 'success');
+      } catch {
+        setStatus(status, 'Could not send a verification code right now. Please try again.', 'error');
+      }
+    });
+
+    resetPasswordForm.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      const code = resetPasswordForm.elements.verificationCode.value.trim();
+      const newPassword = resetPasswordForm.elements.newPassword.value;
+      const confirmPassword = resetPasswordForm.elements.confirmPassword.value;
+
+      if (!activeResetCode) {
+        setStatus(status, 'Send a verification code first.', 'error');
+        return;
+      }
+
+      if (Date.now() > activeResetCode.expiresAt) {
+        activeResetCode = null;
+        setStatus(status, 'Verification code expired. Please request a new one.', 'error');
+        return;
+      }
+
+      if (code !== activeResetCode.code) {
+        setStatus(status, 'Incorrect verification code.', 'error');
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        setStatus(status, 'Password must be at least 6 characters long.', 'error');
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        setStatus(status, 'Passwords do not match.', 'error');
+        return;
+      }
+
+      try {
+        updateLocalPassword(activeResetCode.email, newPassword);
+        await updateRemoteUserPassword(activeResetCode.email, newPassword);
+        activeResetCode = null;
+
+        sendCodeForm.reset();
+        resetPasswordForm.reset();
+        resetPasswordForm.classList.add('hidden');
+        setStatus(status, 'Password updated successfully. You can now log in.', 'success');
+      } catch {
+        setStatus(status, 'Could not reset password right now. Please try again.', 'error');
+      }
+    });
+  }
+
   function initTutorApplication() {
     const form = document.getElementById('tutorApplicationForm');
     if (!form) return;
@@ -271,6 +391,7 @@
     updateAuthUI();
     initSignup();
     initLogin();
+    initForgotPassword();
     initTutorApplication();
     initSessionRequests();
   });

@@ -407,3 +407,29 @@ footer {
   background: #ffd700;
   border-color: #ffd700;
 }
+
+.link-btn {
+  background: transparent;
+  border: none;
+  color: #ffd700;
+  cursor: pointer;
+  font-weight: 600;
+  margin-top: 10px;
+}
+
+.link-btn:hover {
+  text-decoration: underline;
+}
+
+.forgot-password-panel {
+  width: min(460px, 100%);
+  margin: 12px auto 0;
+}
+
+.forgot-password-panel form {
+  margin-bottom: 10px;
+}
+
+.hidden {
+  display: none !important;
+}
