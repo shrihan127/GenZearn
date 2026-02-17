@@ -25,17 +25,21 @@
 
   <section class="form-section">
     <h2>Welcome Back to GenZearn</h2>
-    <form>
-      <input type="email" placeholder="Email" required />
-      <input type="password" placeholder="Password" required />
+    <form id="loginForm">
+      <input type="email" name="email" placeholder="Email" required />
+      <input type="password" name="password" placeholder="Password" required />
       <button type="submit" class="btn primary">Login</button>
     </form>
+    <p id="loginStatus" class="status-message" aria-live="polite"></p>
     <p>Don’t have an account yet? <a href="signup.html">Sign up</a></p>
   </section>
 
   <footer>
     <p>© 2025 GenZearn</p>
   </footer>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
   <script src="app.js" defer></script>
 </body>
 </html>

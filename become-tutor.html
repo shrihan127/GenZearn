@@ -26,13 +26,13 @@
   <section class="form-section">
     <h2>Apply to Teach on GenZearn</h2>
     <p>Tell students what you teach, set your price, and grow your tutoring business with every booking.</p>
-    <form>
-      <input type="text" placeholder="Full Name" required />
-      <input type="email" placeholder="Email" required />
-      <input type="text" placeholder="Subjects You Teach" required />
-      <input type="number" min="5" step="1" placeholder="Your Hourly Rate (USD)" required />
-      <input type="text" placeholder="Payment Method (Bank transfer, PayPal, etc.)" required />
-      <textarea placeholder="Brief description of your teaching experience" required></textarea>
+    <form id="tutorApplicationForm">
+      <input type="text" name="fullName" placeholder="Full Name" required />
+      <input type="email" name="email" placeholder="Email" required />
+      <input type="text" name="subjects" placeholder="Subjects You Teach" required />
+      <input type="number" name="hourlyRate" min="5" step="1" placeholder="Your Hourly Rate (USD)" required />
+      <input type="text" name="paymentMethod" placeholder="Payment Method (Bank transfer, PayPal, etc.)" required />
+      <textarea name="experience" placeholder="Brief description of your teaching experience" required></textarea>
       <button type="submit" class="btn primary">Submit Tutor Profile</button>
     </form>
     <p id="tutorApplicationStatus" class="status-message" aria-live="polite"></p>
@@ -41,6 +41,9 @@
   <footer>
     <p>© 2025 GenZearn</p>
   </footer>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
   <script src="app.js" defer></script>
 </body>
 </html>
