@@ -54,6 +54,20 @@
     </div>
   </div>
 
+  <div id="chatModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeChatModal()">&times;</span>
+      <h2>Chat with <span id="chatTutorName"></span></h2>
+      <form id="chatForm" onsubmit="submitChatMessage(event)">
+        <input id="chatStudentName" type="text" name="studentName" placeholder="Your Name" required />
+        <input id="chatStudentEmail" type="email" name="studentEmail" placeholder="Your Email" required />
+        <textarea id="chatMessage" name="message" placeholder="Ask your question or tell the tutor what you need help with..." required></textarea>
+        <button type="submit" class="btn primary">Send Message</button>
+      </form>
+      <p id="chatStatus" class="status-message" aria-live="polite"></p>
+    </div>
+  </div>
+
   <footer>
     <p>© 2025 GenZearn. All rights reserved.</p>
   </footer>
@@ -74,6 +88,22 @@
       document.getElementById('modal').style.display = 'none';
     }
 
+    function openChatModal(tutorName, tutorEmail) {
+      document.getElementById('chatTutorName').textContent = tutorName;
+      document.getElementById('chatModal').dataset.tutorEmail = tutorEmail || '';
+      document.getElementById('chatStatus').textContent = '';
+      document.getElementById('chatMessage').value = '';
+      document.getElementById('chatModal').style.display = 'flex';
+    }
+
+    function closeChatModal() {
+      document.getElementById('chatModal').style.display = 'none';
+    }
+
+    function submitChatMessage(event) {
+      event.preventDefault();
+    }
+
     function updateTotal() {
       const hours = Number(document.getElementById('hoursField').value || 1);
       const total = currentRate * hours;
@@ -86,8 +116,12 @@
 
     window.onclick = function(event) {
       const modal = document.getElementById('modal');
+      const chatModal = document.getElementById('chatModal');
       if (event.target === modal) {
         modal.style.display = 'none';
+      }
+      if (event.target === chatModal) {
+        chatModal.style.display = 'none';
       }
     };
   </script>

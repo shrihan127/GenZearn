@@ -3,7 +3,8 @@
     users: 'genzearn_users',
     currentUser: 'genzearn_current_user',
     tutorApps: 'genzearn_tutor_applications',
-    sessionRequests: 'genzearn_session_requests'
+    sessionRequests: 'genzearn_session_requests',
+    chatMessages: 'genzearn_chat_messages'
   };
 
   const RESET_CODE_EXPIRY_MS = 10 * 60 * 1000;
@@ -136,7 +137,10 @@
             <p><strong>Rate:</strong> $${rate} / hour</p>
             ${experience}
             ${verificationLabel}
-            <button class="btn primary" type="button" data-tutor-index="${index}">Book Session</button>
+            <div class="tutor-card-actions">
+              <button class="btn primary" type="button" data-tutor-index="${index}">Book Session</button>
+              <button class="btn secondary" type="button" data-chat-tutor-index="${index}">Chat with Tutor</button>
+            </div>
           </div>
         `;
       })
@@ -148,6 +152,15 @@
         const tutor = tutors[Number(button.dataset.tutorIndex)];
         if (!tutor) return;
         openModal(String(tutor.fullName), Number(tutor.hourlyRate), String(tutor.subjects));
+      });
+    });
+
+    const chatButtons = tutorList.querySelectorAll('[data-chat-tutor-index]');
+    chatButtons.forEach((button) => {
+      button.addEventListener('click', function () {
+        const tutor = tutors[Number(button.dataset.chatTutorIndex)];
+        if (!tutor || !window.openChatModal) return;
+        window.openChatModal(String(tutor.fullName), String(tutor.email || ''));
       });
     });
   }
@@ -504,6 +517,48 @@
     };
   }
 
+  function initTutorChat() {
+    const chatForm = document.getElementById('chatForm');
+    if (!chatForm) return;
+
+    const status = document.getElementById('chatStatus');
+    const current = getCurrentUser();
+    if (current) {
+      chatForm.elements.studentName.value = current.name;
+      chatForm.elements.studentEmail.value = current.email;
+    }
+
+    window.submitChatMessage = function (event) {
+      event.preventDefault();
+      const tutor = document.getElementById('chatTutorName').textContent;
+      const tutorEmail = document.getElementById('chatModal').dataset.tutorEmail || '';
+      const message = {
+        tutor,
+        tutorEmail,
+        studentName: chatForm.elements.studentName.value.trim(),
+        studentEmail: chatForm.elements.studentEmail.value.trim().toLowerCase(),
+        message: chatForm.elements.message.value.trim(),
+        createdAt: new Date().toISOString()
+      };
+
+      if (!message.message) {
+        setStatus(status, 'Please enter a message for the tutor.', 'error');
+        return;
+      }
+
+      const messages = loadJson(STORAGE_KEYS.chatMessages, []);
+      messages.push(message);
+      saveJson(STORAGE_KEYS.chatMessages, messages);
+
+      setStatus(status, `Message sent to ${tutor}! They'll get back to you soon.`, 'success');
+      chatForm.elements.message.value = '';
+
+      setTimeout(() => {
+        if (window.closeChatModal) window.closeChatModal();
+      }, 900);
+    };
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     initFirebase();
     updateAuthUI();
@@ -513,5 +568,6 @@
     initTutorApplication();
     initTutorDirectory();
     initSessionRequests();
+    initTutorChat();
   });
 })();
