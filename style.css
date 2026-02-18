@@ -480,3 +480,30 @@ footer {
 .hidden {
   display: none !important;
 }
+
+.faq-hero {
+  padding-bottom: 35px;
+}
+
+.faq-list {
+  width: min(900px, 92%);
+  margin: 0 auto 60px;
+  display: grid;
+  gap: 16px;
+}
+
+.faq-item {
+  background: #003a92;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.2);
+}
+
+.faq-item h3 {
+  color: #ffd700;
+  margin-bottom: 10px;
+}
+
+.faq-item p {
+  line-height: 1.6;
+}
