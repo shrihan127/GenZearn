@@ -263,6 +263,42 @@ textarea {
   justify-items: center;
 }
 
+.filters {
+  width: min(1100px, 94%);
+  margin: 0 auto;
+  background: #003a92;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.2);
+}
+
+.filters h3 {
+  margin-bottom: 12px;
+  color: #ffd700;
+}
+
+.filter-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.filter-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.filter-grid input,
+.filter-grid select {
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  padding: 10px;
+}
+
 .tutor-card {
   background-color: #003a92;
   border-radius: 15px;

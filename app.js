@@ -156,6 +156,8 @@
         const subject = String(tutor.subjects);
         const fullName = String(tutor.fullName);
         const qualifications = String(tutor.qualifications);
+        const rating = Number(tutor.rating).toFixed(1);
+        const availability = getAvailabilityText(tutor.availability);
         const experience = tutor.experience ? `<p><strong>Experience:</strong> ${tutor.experience}</p>` : '';
         const verificationLabel = tutor.verification
           ? `<p class="verification-pill ${tutor.verification.status}">${tutor.verification.message}</p>`
@@ -167,6 +169,8 @@
             <p><strong>Subject:</strong> ${subject}</p>
             <p><strong>Qualifications:</strong> ${qualifications}</p>
             <p><strong>Rate:</strong> $${rate} / hour</p>
+            <p><strong>Rating:</strong> ⭐ ${rating}</p>
+            <p><strong>Availability:</strong> ${availability}</p>
             ${experience}
             ${verificationLabel}
             <div class="tutor-card-actions">
@@ -205,8 +209,24 @@
 
     try {
       const applications = await getTutorApplications();
-      const tutors = normalizeTutorList(applications).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-      renderTutorList(tutors);
+      const tutors = normalizeTutorList(applications)
+        .map(enrichTutor)
+        .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+      const applyFiltersAndRender = function () {
+        const filters = getTutorFilters();
+        const filteredTutors = filterTutors(tutors, filters);
+        renderTutorList(filteredTutors);
+      };
+
+      ['subjectFilter', 'priceFilter', 'ratingFilter', 'availabilityFilter'].forEach((id) => {
+        const control = document.getElementById(id);
+        if (!control) return;
+        control.addEventListener('input', applyFiltersAndRender);
+        control.addEventListener('change', applyFiltersAndRender);
+      });
+
+      applyFiltersAndRender();
     } catch {
       tutorList.innerHTML = '<p class="status-message error">Could not load tutors right now. Please refresh and try again.</p>';
     }
