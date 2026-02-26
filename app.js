@@ -146,18 +146,16 @@
 
     if (!availability) return 'waitlist';
 
-    const unavailablePattern = /\b(unavailable|not\s+available|no\s+availability|fully\s+booked|booked\s+out)\b/;
+    const unavailablePattern = /\b(unavailable|not(?:\s+\w+){0,2}\s+available|no\s+availability|fully\s+booked|booked\s+out)\b/;
     if (unavailablePattern.test(availability)) return 'waitlist';
 
-    if (/\b(available\s+now|immediately\s+available|open\s+slots?|openings?|accepting\s+students?)\b/.test(availability)) {
+    if (/\b(available\s+now|immediately\s+available|open\s+slots?|openings?|accepting\s+students?|available)\b/.test(availability)) {
       return 'available';
     }
 
     if (/\b(limited|few\s+slots?|partially\s+available|some\s+availability)\b/.test(availability)) {
       return 'limited';
     }
-
-    if (availability.includes('available')) return 'available';
 
     return 'waitlist';
   }
