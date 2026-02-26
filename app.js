@@ -153,7 +153,7 @@
   function verifyIdWithBot(application) {
     const idType = String(application.idType || '').trim();
     const idNumber = String(application.idNumber || '').trim().toUpperCase();
-    const idDocumentUrl = String(application.idDocumentUrl || '').trim().toLowerCase();
+    const idDocumentUrl = String(application.idDocumentUrl || '').trim();
 
     const idPatterns = {
       Passport: /^[A-Z0-9]{6,12}$/,
@@ -161,9 +161,31 @@
       'Driver License': /^[A-Z0-9\-]{6,16}$/
     };
 
-    const suspiciousTokens = ['example.com', 'test', 'fake', 'dummy', 'sample', 'temp'];
+    const suspiciousDomains = ['example.com'];
+    const suspiciousWords = ['test', 'fake', 'dummy', 'sample', 'temp'];
     const hasValidPattern = idPatterns[idType] ? idPatterns[idType].test(idNumber) : false;
-    const hasSuspiciousUrl = suspiciousTokens.some((token) => idDocumentUrl.includes(token));
+    let hasSuspiciousUrl = false;
+
+    try {
+      const parsedUrl = new URL(idDocumentUrl);
+      const hostname = parsedUrl.hostname.toLowerCase();
+      const hostLabels = hostname.split('.').filter(Boolean);
+      const pathAndQuery = `${parsedUrl.pathname} ${parsedUrl.search}`.toLowerCase();
+      const wordMatches = pathAndQuery.match(/[a-z0-9]+/g) || [];
+
+      const hasSuspiciousDomain = suspiciousDomains.some(
+        (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
+      );
+
+      const hasSuspiciousWord = suspiciousWords.some(
+        (token) => hostLabels.includes(token) || wordMatches.includes(token)
+      );
+
+      hasSuspiciousUrl = hasSuspiciousDomain || hasSuspiciousWord;
+    } catch {
+      hasSuspiciousUrl = true;
+    }
+
     const hasRepeatedChars = /(.)\1{5,}/.test(idNumber);
 
     if (!hasValidPattern || hasSuspiciousUrl || hasRepeatedChars) {
