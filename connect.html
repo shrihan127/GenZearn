@@ -29,6 +29,39 @@
     <p>Pick a tutor, request a lesson, and pay securely with clear upfront pricing before you confirm.</p>
   </section>
 
+  <section class="filters" aria-label="Tutor filters">
+    <h3>Filters</h3>
+    <div class="filter-grid">
+      <label>
+        Subject
+        <input id="subjectFilter" type="text" placeholder="e.g. Math, Biology" />
+      </label>
+      <label>
+        Max Price / Hour
+        <input id="priceFilter" type="number" min="0" step="1" placeholder="Any" />
+      </label>
+      <label>
+        Minimum Rating
+        <select id="ratingFilter">
+          <option value="0">Any rating</option>
+          <option value="3">3.0+</option>
+          <option value="3.5">3.5+</option>
+          <option value="4">4.0+</option>
+          <option value="4.5">4.5+</option>
+        </select>
+      </label>
+      <label>
+        Availability
+        <select id="availabilityFilter">
+          <option value="any">Any availability</option>
+          <option value="available">Available now</option>
+          <option value="limited">Limited slots</option>
+          <option value="waitlist">Waitlist</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
   <section class="tutors" id="tutorList" aria-live="polite"></section>
 
   <div id="modal" class="modal">
