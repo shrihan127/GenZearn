@@ -141,6 +141,69 @@
     }
   }
 
+  function getAvailabilityLabel(providedAvailability) {
+    const availability = String(providedAvailability || '').trim().toLowerCase();
+
+    if (!availability) return 'waitlist';
+
+    const unavailablePattern = /\b(unavailable|not\s+available|no\s+availability|fully\s+booked|booked\s+out)\b/;
+    if (unavailablePattern.test(availability)) return 'waitlist';
+
+    if (/\b(available\s+now|immediately\s+available|open\s+slots?|openings?|accepting\s+students?)\b/.test(availability)) {
+      return 'available';
+    }
+
+    if (/\b(limited|few\s+slots?|partially\s+available|some\s+availability)\b/.test(availability)) {
+      return 'limited';
+    }
+
+    if (availability.includes('available')) return 'available';
+
+    return 'waitlist';
+  }
+
+  function getAvailabilityText(providedAvailability) {
+    const label = getAvailabilityLabel(providedAvailability);
+    if (label === 'available') return 'Available now';
+    if (label === 'limited') return 'Limited slots';
+    return 'Waitlist';
+  }
+
+  function getTutorFilters() {
+    return {
+      subject: String(document.getElementById('subjectFilter')?.value || '').trim().toLowerCase(),
+      maxPrice: Number(document.getElementById('priceFilter')?.value || 0),
+      minRating: Number(document.getElementById('ratingFilter')?.value || 0),
+      availability: String(document.getElementById('availabilityFilter')?.value || 'any')
+    };
+  }
+
+  function enrichTutor(tutor) {
+    const rating = Number(tutor.rating);
+    const safeRating = Number.isFinite(rating) && rating > 0 ? rating : 4.5;
+    return {
+      ...tutor,
+      rating: Math.min(5, Math.max(0, safeRating)),
+      availability: getAvailabilityLabel(tutor.availability)
+    };
+  }
+
+  function filterTutors(tutors, filters) {
+    return tutors.filter((tutor) => {
+      const subject = String(tutor.subjects || '').toLowerCase();
+      const rate = Number(tutor.hourlyRate);
+      const rating = Number(tutor.rating);
+      const availabilityLabel = getAvailabilityLabel(tutor.availability);
+
+      if (filters.subject && !subject.includes(filters.subject)) return false;
+      if (filters.maxPrice > 0 && rate > filters.maxPrice) return false;
+      if (filters.minRating > 0 && rating < filters.minRating) return false;
+      if (filters.availability !== 'any' && availabilityLabel !== filters.availability) return false;
+
+      return true;
+    });
+  }
+
   function renderTutorList(tutors) {
     const tutorList = document.getElementById('tutorList');
     if (!tutorList) return;
