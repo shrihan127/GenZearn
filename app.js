@@ -153,18 +153,40 @@
   function verifyIdWithBot(application) {
     const idType = String(application.idType || '').trim();
     const idNumber = String(application.idNumber || '').trim().toUpperCase();
-    const idDocumentUrl = String(application.idDocumentUrl || '').trim().toLowerCase();
+    const idDocumentUrl = String(application.idDocumentUrl || '').trim();
 
-    const idPatterns = {
-      Passport: /^[A-Z0-9]{6,12}$/,
-      'National ID': /^[A-Z0-9\-]{6,18}$/,
-      'Driver License': /^[A-Z0-9\-]{6,16}$/
-    };
-
-    const suspiciousTokens = ['example.com', 'test', 'fake', 'dummy', 'sample', 'temp'];
-    const hasValidPattern = idPatterns[idType] ? idPatterns[idType].test(idNumber) : false;
-    const hasSuspiciousUrl = suspiciousTokens.some((token) => idDocumentUrl.includes(token));
+    const hasValidPattern = /^[A-Z0-9-]{6,20}$/.test(idNumber);
     const hasRepeatedChars = /(.)\1{5,}/.test(idNumber);
+
+    let hasSuspiciousUrl = true;
+    try {
+      const parsedUrl = new URL(idDocumentUrl);
+      const host = parsedUrl.hostname.toLowerCase();
+      const hostLabels = host.split('.').filter(Boolean);
+
+      const suspiciousHostLabels = new Set(['test', 'temp', 'fake', 'dummy', 'invalid', 'localhost']);
+      const suspiciousHostnames = new Set(['example.com', 'example.org', 'test.com', 'localhost']);
+      const hasSuspiciousHostLabel = hostLabels.some((label) => suspiciousHostLabels.has(label));
+      const hasSuspiciousHostname = suspiciousHostnames.has(host);
+
+      const suspiciousPathWordPattern = /(^|[\W_])(fake|dummy|placeholder|sample)([\W_]|$)/i;
+      const hasSuspiciousPathWord = suspiciousPathWordPattern.test(parsedUrl.pathname);
+
+      hasSuspiciousUrl = !['http:', 'https:'].includes(parsedUrl.protocol)
+        || hasSuspiciousHostLabel
+        || hasSuspiciousHostname
+        || hasSuspiciousPathWord;
+    } catch {
+      hasSuspiciousUrl = true;
+    }
+
+    if (!idType) {
+      return {
+        status: 'rejected',
+        reason: 'ID type is required for verification.',
+        checkedAt: new Date().toISOString()
+      };
+    }
 
     if (!hasValidPattern || hasSuspiciousUrl || hasRepeatedChars) {
       return {
