@@ -153,16 +153,39 @@
   function verifyIdWithBot(application) {
     const idType = String(application.idType || '').trim();
     const idNumber = String(application.idNumber || '').trim().toUpperCase();
-    const idDocumentUrl = String(application.idDocumentUrl || '').trim().toLowerCase();
+    const idDocumentUrl = String(application.idDocumentUrl || '').trim();
 
-    const unavailablePattern = /\b(unavailable|not(?:\s+\w+){0,2}\s+available|no\s+availability|fully\s+booked|booked\s+out)\b/;
-    if (unavailablePattern.test(availability)) return 'waitlist';
+    const hasValidPattern = /^[A-Z0-9-]{6,20}$/.test(idNumber);
+    const hasRepeatedChars = /(.)\1{5,}/.test(idNumber);
 
-    const notAcceptingStudentsPattern = /\b(?:not|no\s+longer|isn['’]?t|aren['’]?t|currently\s+not)\s+accepting\s+students?\b/;
-    if (notAcceptingStudentsPattern.test(availability)) return 'waitlist';
+    let hasSuspiciousUrl = true;
+    try {
+      const parsedUrl = new URL(idDocumentUrl);
+      const host = parsedUrl.hostname.toLowerCase();
+      const hostLabels = host.split('.').filter(Boolean);
 
-    if (/\b(available\s+now|immediately\s+available|open\s+slots?|openings?|accepting\s+students?)\b/.test(availability)) {
-      return 'available';
+      const suspiciousHostLabels = new Set(['test', 'temp', 'fake', 'dummy', 'invalid', 'localhost']);
+      const suspiciousHostnames = new Set(['example.com', 'example.org', 'test.com', 'localhost']);
+      const hasSuspiciousHostLabel = hostLabels.some((label) => suspiciousHostLabels.has(label));
+      const hasSuspiciousHostname = suspiciousHostnames.has(host);
+
+      const suspiciousPathWordPattern = /(^|[\W_])(fake|dummy|placeholder|sample)([\W_]|$)/i;
+      const hasSuspiciousPathWord = suspiciousPathWordPattern.test(parsedUrl.pathname);
+
+      hasSuspiciousUrl = !['http:', 'https:'].includes(parsedUrl.protocol)
+        || hasSuspiciousHostLabel
+        || hasSuspiciousHostname
+        || hasSuspiciousPathWord;
+    } catch {
+      hasSuspiciousUrl = true;
+    }
+
+    if (!idType) {
+      return {
+        status: 'rejected',
+        reason: 'ID type is required for verification.',
+        checkedAt: new Date().toISOString()
+      };
     }
 
     if (!hasValidPattern || hasSuspiciousUrl || hasRepeatedChars) {
