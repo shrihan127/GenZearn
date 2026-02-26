@@ -38,22 +38,6 @@
       <textarea name="experience" placeholder="Brief description of your teaching experience" required></textarea>
       <textarea name="qualificationProof" placeholder="Qualification proof details (issuing body, link, certificate ID, portfolio URL, etc.)"></textarea>
       <textarea name="referral" placeholder="Referral (name + contact + why they vouch for you) if you don't have formal qualification"></textarea>
-      <div class="id-verification-box">
-        <h3>ID Verification Box</h3>
-        <p>Complete this so we can make sure you are real and get back to you as quickly as possible.</p>
-        <select name="idType" required>
-          <option value="">Select ID Type</option>
-          <option value="Passport">Passport</option>
-          <option value="National ID">National ID</option>
-          <option value="Driver License">Driver License</option>
-        </select>
-        <input type="text" name="idNumber" placeholder="ID Number" minlength="6" required />
-        <input type="url" name="idDocumentUrl" placeholder="Secure ID document link (Google Drive, Dropbox, etc.)" required />
-        <label class="checkbox-row">
-          <input type="checkbox" name="isHumanCheck" required />
-          <span>I am not a bot and this ID belongs to me.</span>
-        </label>
-      </div>
       <button type="submit" class="btn primary">Submit Tutor Profile</button>
     </form>
     <p id="tutorApplicationStatus" class="status-message" aria-live="polite"></p>

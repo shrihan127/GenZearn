@@ -85,10 +85,6 @@
     await db.ref('tutorApplications').push(application);
   }
 
-  async function removeTutorApplication(remoteKey) {
-    if (!db || !remoteKey) return;
-    await db.ref(`tutorApplications/${remoteKey}`).remove();
-  }
 
   async function createSessionRequest(request) {
     if (!db) return;
@@ -120,7 +116,6 @@
           && application.subjects
           && application.qualifications
           && application.qualificationsVerified === true
-          && application.idVerification?.status === 'approved'
           && Number(application.hourlyRate)
       );
     });
@@ -132,105 +127,6 @@
 
     const recognizedCredentialPattern = /\b(degree|b\.?a\.?|b\.?s\.?|m\.?a\.?|m\.?s\.?|phd|doctorate|certified|certification|license|licensed|teaching credential|pgce)\b/i;
     return recognizedCredentialPattern.test(value);
-  }
-
-  function hasValidIdSubmission(application) {
-    const idNumber = String(application.idNumber || '').trim();
-    const idLink = String(application.idDocumentUrl || '').trim();
-    const idType = String(application.idType || '').trim();
-
-    if (!application.isHumanCheck) return false;
-    if (idType.length < 3 || idNumber.length < 6) return false;
-
-    try {
-      const parsedUrl = new URL(idLink);
-      return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
-    } catch {
-      return false;
-    }
-  }
-
-  function verifyIdWithBot(application) {
-    const idType = String(application.idType || '').trim();
-    const idNumber = String(application.idNumber || '').trim().toUpperCase();
-    const idDocumentUrl = String(application.idDocumentUrl || '').trim();
-
-    const idPatterns = {
-      Passport: /^[A-Z0-9]{6,12}$/,
-      'National ID': /^[A-Z0-9\-]{6,18}$/,
-      'Driver License': /^[A-Z0-9\-]{6,16}$/
-    };
-
-    const suspiciousDomains = ['example.com'];
-    const suspiciousWords = ['test', 'fake', 'dummy', 'sample', 'temp'];
-    const hasValidPattern = idPatterns[idType] ? idPatterns[idType].test(idNumber) : false;
-    let hasSuspiciousUrl = false;
-
-    try {
-      const parsedUrl = new URL(idDocumentUrl);
-      const hostname = parsedUrl.hostname.toLowerCase();
-      const hostLabels = hostname.split('.').filter(Boolean);
-      const pathAndQuery = `${parsedUrl.pathname} ${parsedUrl.search}`.toLowerCase();
-      const wordMatches = pathAndQuery.match(/[a-z0-9]+/g) || [];
-
-      const hasSuspiciousDomain = suspiciousDomains.some(
-        (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
-      );
-
-      const hasSuspiciousWord = suspiciousWords.some(
-        (token) => hostLabels.includes(token) || wordMatches.includes(token)
-      );
-
-      hasSuspiciousUrl = hasSuspiciousDomain || hasSuspiciousWord;
-    } catch {
-      hasSuspiciousUrl = true;
-    }
-
-    const hasRepeatedChars = /(.)\1{5,}/.test(idNumber);
-
-    let hasSuspiciousUrl = true;
-    try {
-      const parsedUrl = new URL(idDocumentUrl);
-      const host = parsedUrl.hostname.toLowerCase();
-      const hostLabels = host.split('.').filter(Boolean);
-
-      const suspiciousHostLabels = new Set(['test', 'temp', 'fake', 'dummy', 'invalid', 'localhost']);
-      const suspiciousHostnames = new Set(['example.com', 'example.org', 'test.com', 'localhost']);
-      const hasSuspiciousHostLabel = hostLabels.some((label) => suspiciousHostLabels.has(label));
-      const hasSuspiciousHostname = suspiciousHostnames.has(host);
-
-      const suspiciousPathWordPattern = /(^|[\W_])(fake|dummy|placeholder|sample)([\W_]|$)/i;
-      const hasSuspiciousPathWord = suspiciousPathWordPattern.test(parsedUrl.pathname);
-
-      hasSuspiciousUrl = !['http:', 'https:'].includes(parsedUrl.protocol)
-        || hasSuspiciousHostLabel
-        || hasSuspiciousHostname
-        || hasSuspiciousPathWord;
-    } catch {
-      hasSuspiciousUrl = true;
-    }
-
-    if (!idType) {
-      return {
-        status: 'rejected',
-        reason: 'ID type is required for verification.',
-        checkedAt: new Date().toISOString()
-      };
-    }
-
-    if (!hasValidPattern || hasSuspiciousUrl || hasRepeatedChars) {
-      return {
-        status: 'rejected',
-        reason: 'ID bot could not confirm this ID. Please re-submit with a legitimate ID number and document link.',
-        checkedAt: new Date().toISOString()
-      };
-    }
-
-    return {
-      status: 'approved',
-      reason: 'ID bot verified this submission as valid.',
-      checkedAt: new Date().toISOString()
-    };
   }
 
   function getAvailabilityLabel(providedAvailability) {
@@ -297,28 +193,6 @@
     });
   }
 
-  async function purgeRejectedApplications() {
-    const localApplications = loadJson(STORAGE_KEYS.tutorApps, []);
-    const approvedLocalApplications = localApplications.filter(
-      (application) => application.idVerification?.status !== 'rejected'
-    );
-
-    if (approvedLocalApplications.length !== localApplications.length) {
-      saveJson(STORAGE_KEYS.tutorApps, approvedLocalApplications);
-    }
-
-    if (!db) return;
-
-    const snapshot = await db.ref('tutorApplications').once('value');
-    const remoteEntries = Object.entries(snapshot.val() || {});
-    const deleteJobs = remoteEntries
-      .filter(([, application]) => application?.idVerification?.status === 'rejected')
-      .map(([remoteKey]) => removeTutorApplication(remoteKey));
-
-    if (deleteJobs.length) {
-      await Promise.allSettled(deleteJobs);
-    }
-  }
 
   function renderTutorList(tutors) {
     const tutorList = document.getElementById('tutorList');
@@ -387,7 +261,6 @@
     tutorList.innerHTML = '<p class="status-message">Loading tutors...</p>';
 
     try {
-      await purgeRejectedApplications();
       const applications = await getTutorApplications();
       const tutors = normalizeTutorList(applications)
         .map(enrichTutor)
@@ -662,27 +535,11 @@
         experience: form.elements.experience.value.trim(),
         qualificationProof: form.elements.qualificationProof.value.trim(),
         referral: form.elements.referral.value.trim(),
-        idType: form.elements.idType.value,
-        idNumber: form.elements.idNumber.value.trim(),
-        idDocumentUrl: form.elements.idDocumentUrl.value.trim(),
-        isHumanCheck: form.elements.isHumanCheck.checked,
         createdAt: new Date().toISOString()
       };
 
       if (!hasValidQualifications(application.qualifications)) {
         setStatus(status, 'Please enter valid qualifications (degree, certification, or teaching license).', 'error');
-        return;
-      }
-
-      if (!hasValidIdSubmission(application)) {
-        setStatus(status, 'Please complete the ID verification box and bot check with valid details.', 'error');
-        return;
-      }
-
-      const idVerification = verifyIdWithBot(application);
-      application.idVerification = idVerification;
-      if (idVerification.status !== 'approved') {
-        setStatus(status, idVerification.reason, 'error');
         return;
       }
 
@@ -695,7 +552,7 @@
       try {
         await createTutorApplication(application);
         form.reset();
-        setStatus(status, 'Application submitted. Qualification + ID bot checks approved your profile.', 'success');
+        setStatus(status, 'Application submitted. Qualification checks approved your profile.', 'success');
       } catch {
         setStatus(status, 'Could not submit application right now. Please try again.', 'error');
       }
