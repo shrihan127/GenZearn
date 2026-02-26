@@ -505,7 +505,7 @@
 
         setStatus(status, 'Account created successfully! Redirecting to tutors...', 'success');
         setTimeout(() => {
-          window.location.href = 'connect.html';
+          window.location.href = 'find-tutors.html';
         }, 800);
       } catch {
         setStatus(status, 'Could not create account right now. Please try again.', 'error');
@@ -540,7 +540,7 @@
         setCurrentUser({ name: user.name, email: user.email, role: user.role || '' });
         setStatus(status, 'Logged in successfully! Redirecting...', 'success');
         setTimeout(() => {
-          window.location.href = 'connect.html';
+          window.location.href = 'find-tutors.html';
         }, 800);
       } catch {
         setStatus(status, 'Could not log in right now. Please try again.', 'error');
