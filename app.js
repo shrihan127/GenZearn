@@ -196,6 +196,32 @@
       };
     }
 
+    return {
+      status: 'approved',
+      reason: 'ID bot verified this submission as valid.',
+      checkedAt: new Date().toISOString()
+    };
+  }
+
+  function getAvailabilityLabel(providedAvailability) {
+    const availability = String(providedAvailability || '').trim().toLowerCase();
+
+    if (!availability) return 'waitlist';
+
+    const unavailablePattern = /\b(unavailable|not(?:\s+\w+){0,2}\s+available|no\s+availability|fully\s+booked|booked\s+out)\b/;
+    if (unavailablePattern.test(availability)) return 'waitlist';
+
+    const notAcceptingStudentsPattern = /\b(?:not|no\s+longer|isn['’]?t|aren['’]?t|currently\s+not)\s+accepting\s+students?\b/;
+    if (notAcceptingStudentsPattern.test(availability)) return 'waitlist';
+
+    if (/\b(limited|few\s+slots?|partially\s+available|some\s+availability)\b/.test(availability)) {
+      return 'limited';
+    }
+
+    if (/\b(available\s+now|immediately\s+available|open\s+slots?|openings?|accepting\s+students?|available)\b/.test(availability)) {
+      return 'available';
+    }
+
     return 'waitlist';
   }
 
@@ -208,10 +234,37 @@
 
   function getTutorFilters() {
     return {
-      status: 'approved',
-      reason: 'ID bot verified this submission as valid.',
-      checkedAt: new Date().toISOString()
+      subject: String(document.getElementById('subjectFilter')?.value || '').trim().toLowerCase(),
+      maxPrice: Number(document.getElementById('priceFilter')?.value || 0),
+      minRating: Number(document.getElementById('ratingFilter')?.value || 0),
+      availability: String(document.getElementById('availabilityFilter')?.value || 'any')
     };
+  }
+
+  function enrichTutor(tutor) {
+    const rating = Number(tutor.rating);
+    const safeRating = Number.isFinite(rating) && rating > 0 ? rating : 4.5;
+    return {
+      ...tutor,
+      rating: Math.min(5, Math.max(0, safeRating)),
+      availability: getAvailabilityLabel(tutor.availability)
+    };
+  }
+
+  function filterTutors(tutors, filters) {
+    return tutors.filter((tutor) => {
+      const subject = String(tutor.subjects || '').toLowerCase();
+      const rate = Number(tutor.hourlyRate);
+      const rating = Number(tutor.rating);
+      const availabilityLabel = getAvailabilityLabel(tutor.availability);
+
+      if (filters.subject && !subject.includes(filters.subject)) return false;
+      if (filters.maxPrice > 0 && rate > filters.maxPrice) return false;
+      if (filters.minRating > 0 && rating < filters.minRating) return false;
+      if (filters.availability !== 'any' && availabilityLabel !== filters.availability) return false;
+
+      return true;
+    });
   }
 
   async function purgeRejectedApplications() {
