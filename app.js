@@ -125,58 +125,20 @@
     return recognizedCredentialPattern.test(value);
   }
 
-  function createConsistentScore(seedValue, min, max) {
-    const seed = String(seedValue || 'genzearn');
-    const hash = seed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const normalized = (Math.sin(hash) + 1) / 2;
-    return min + normalized * (max - min);
-  }
+  function hasValidIdSubmission(application) {
+    const idNumber = String(application.idNumber || '').trim();
+    const idLink = String(application.idDocumentUrl || '').trim();
+    const idType = String(application.idType || '').trim();
 
-  function getAvailabilityLabel(tutor) {
-    const providedAvailability = String(tutor.availability || '').trim().toLowerCase();
-    if (providedAvailability.includes('available')) return 'available';
-    if (providedAvailability.includes('limited')) return 'limited';
-    if (providedAvailability.includes('waitlist')) return 'waitlist';
+    if (!application.isHumanCheck) return false;
+    if (idType.length < 3 || idNumber.length < 6) return false;
 
-    const fallbackScore = createConsistentScore(tutor.email || tutor.fullName, 0, 1);
-    if (fallbackScore >= 0.7) return 'available';
-    if (fallbackScore >= 0.35) return 'limited';
-    return 'waitlist';
-  }
-
-  function enrichTutor(tutor) {
-    const rating = Number(tutor.rating) || createConsistentScore(tutor.fullName, 3.4, 5);
-    const availability = getAvailabilityLabel(tutor);
-    return {
-      ...tutor,
-      rating: Number(rating.toFixed(1)),
-      availability
-    };
-  }
-
-  function getAvailabilityText(availability) {
-    if (availability === 'available') return 'Available now';
-    if (availability === 'limited') return 'Limited slots';
-    return 'Waitlist';
-  }
-
-  function getTutorFilters() {
-    return {
-      subject: String(document.getElementById('subjectFilter')?.value || '').trim().toLowerCase(),
-      maxPrice: Number(document.getElementById('priceFilter')?.value || 0),
-      minRating: Number(document.getElementById('ratingFilter')?.value || 0),
-      availability: String(document.getElementById('availabilityFilter')?.value || 'any')
-    };
-  }
-
-  function filterTutors(tutors, filters) {
-    return tutors.filter((tutor) => {
-      const subjectMatch = !filters.subject || String(tutor.subjects).toLowerCase().includes(filters.subject);
-      const priceMatch = !filters.maxPrice || Number(tutor.hourlyRate) <= filters.maxPrice;
-      const ratingMatch = Number(tutor.rating) >= filters.minRating;
-      const availabilityMatch = filters.availability === 'any' || tutor.availability === filters.availability;
-      return subjectMatch && priceMatch && ratingMatch && availabilityMatch;
-    });
+    try {
+      const parsedUrl = new URL(idLink);
+      return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
+    } catch {
+      return false;
+    }
   }
 
   function renderTutorList(tutors) {
@@ -520,11 +482,20 @@
         experience: form.elements.experience.value.trim(),
         qualificationProof: form.elements.qualificationProof.value.trim(),
         referral: form.elements.referral.value.trim(),
+        idType: form.elements.idType.value,
+        idNumber: form.elements.idNumber.value.trim(),
+        idDocumentUrl: form.elements.idDocumentUrl.value.trim(),
+        isHumanCheck: form.elements.isHumanCheck.checked,
         createdAt: new Date().toISOString()
       };
 
       if (!hasValidQualifications(application.qualifications)) {
         setStatus(status, 'Please enter valid qualifications (degree, certification, or teaching license).', 'error');
+        return;
+      }
+
+      if (!hasValidIdSubmission(application)) {
+        setStatus(status, 'Please complete the ID verification box and bot check with valid details.', 'error');
         return;
       }
 
@@ -537,7 +508,7 @@
       try {
         await createTutorApplication(application);
         form.reset();
-        setStatus(status, 'Application submitted and qualification bot marked it as verified.', 'success');
+        setStatus(status, 'Application submitted. Qualification + ID bot checks marked your profile as verified.', 'success');
       } catch {
         setStatus(status, 'Could not submit application right now. Please try again.', 'error');
       }
