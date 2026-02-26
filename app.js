@@ -134,6 +134,17 @@
     return recognizedCredentialPattern.test(value);
   }
 
+  function hasValidQualificationProof(qualificationProof) {
+    const value = String(qualificationProof || '').trim();
+    if (!value) return true;
+    if (value.length < 10) return false;
+
+    const recognizedProofPattern = /\b(issuing body|certificate|certification|license|licensed|credential|portfolio|transcript|recent grades?|grade report|mark\s?sheet)\b/i;
+    const hasLink = /https?:\/\/\S+/i.test(value);
+    const hasCertificateId = /\b[a-z0-9][a-z0-9\-]{4,}\b/i.test(value);
+    return recognizedProofPattern.test(value) || hasLink || hasCertificateId;
+  }
+
   function hasValidIdSubmission(application) {
     const idNumber = String(application.idNumber || '').trim();
     const idLink = String(application.idDocumentUrl || '').trim();
@@ -161,31 +172,7 @@
       'Driver License': /^[A-Z0-9\-]{6,16}$/
     };
 
-    const suspiciousDomains = ['example.com'];
-    const suspiciousWords = ['test', 'fake', 'dummy', 'sample', 'temp'];
     const hasValidPattern = idPatterns[idType] ? idPatterns[idType].test(idNumber) : false;
-    let hasSuspiciousUrl = false;
-
-    try {
-      const parsedUrl = new URL(idDocumentUrl);
-      const hostname = parsedUrl.hostname.toLowerCase();
-      const hostLabels = hostname.split('.').filter(Boolean);
-      const pathAndQuery = `${parsedUrl.pathname} ${parsedUrl.search}`.toLowerCase();
-      const wordMatches = pathAndQuery.match(/[a-z0-9]+/g) || [];
-
-      const hasSuspiciousDomain = suspiciousDomains.some(
-        (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
-      );
-
-      const hasSuspiciousWord = suspiciousWords.some(
-        (token) => hostLabels.includes(token) || wordMatches.includes(token)
-      );
-
-      hasSuspiciousUrl = hasSuspiciousDomain || hasSuspiciousWord;
-    } catch {
-      hasSuspiciousUrl = true;
-    }
-
     const hasRepeatedChars = /(.)\1{5,}/.test(idNumber);
 
     let hasSuspiciousUrl = true;
@@ -671,6 +658,11 @@
 
       if (!hasValidQualifications(application.qualifications)) {
         setStatus(status, 'Please enter valid qualifications (degree, certification, or teaching license).', 'error');
+        return;
+      }
+
+      if (!hasValidQualificationProof(application.qualificationProof)) {
+        setStatus(status, 'Please provide valid qualification proof details (issuing body, certificate info, portfolio link, or recent grades).', 'error');
         return;
       }
 
