@@ -155,16 +155,12 @@
     const idNumber = String(application.idNumber || '').trim().toUpperCase();
     const idDocumentUrl = String(application.idDocumentUrl || '').trim().toLowerCase();
 
-    const idPatterns = {
-      Passport: /^[A-Z0-9]{6,12}$/,
-      'National ID': /^[A-Z0-9\-]{6,18}$/,
-      'Driver License': /^[A-Z0-9\-]{6,16}$/
-    };
+    const unavailablePattern = /\b(unavailable|not(?:\s+\w+){0,2}\s+available|no\s+availability|fully\s+booked|booked\s+out)\b/;
+    if (unavailablePattern.test(availability)) return 'waitlist';
 
-    const suspiciousTokens = ['example.com', 'test', 'fake', 'dummy', 'sample', 'temp'];
-    const hasValidPattern = idPatterns[idType] ? idPatterns[idType].test(idNumber) : false;
-    const hasSuspiciousUrl = suspiciousTokens.some((token) => idDocumentUrl.includes(token));
-    const hasRepeatedChars = /(.)\1{5,}/.test(idNumber);
+    if (/\b(available\s+now|immediately\s+available|open\s+slots?|openings?|accepting\s+students?|available)\b/.test(availability)) {
+      return 'available';
+    }
 
     if (!hasValidPattern || hasSuspiciousUrl || hasRepeatedChars) {
       return {
@@ -174,6 +170,17 @@
       };
     }
 
+    return 'waitlist';
+  }
+
+  function getAvailabilityText(providedAvailability) {
+    const label = getAvailabilityLabel(providedAvailability);
+    if (label === 'available') return 'Available now';
+    if (label === 'limited') return 'Limited slots';
+    return 'Waitlist';
+  }
+
+  function getTutorFilters() {
     return {
       status: 'approved',
       reason: 'ID bot verified this submission as valid.',
