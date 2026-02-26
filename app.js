@@ -125,6 +125,22 @@
     return recognizedCredentialPattern.test(value);
   }
 
+  function hasValidIdSubmission(application) {
+    const idNumber = String(application.idNumber || '').trim();
+    const idLink = String(application.idDocumentUrl || '').trim();
+    const idType = String(application.idType || '').trim();
+
+    if (!application.isHumanCheck) return false;
+    if (idType.length < 3 || idNumber.length < 6) return false;
+
+    try {
+      const parsedUrl = new URL(idLink);
+      return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
+
   function renderTutorList(tutors) {
     const tutorList = document.getElementById('tutorList');
     if (!tutorList) return;
@@ -446,11 +462,20 @@
         experience: form.elements.experience.value.trim(),
         qualificationProof: form.elements.qualificationProof.value.trim(),
         referral: form.elements.referral.value.trim(),
+        idType: form.elements.idType.value,
+        idNumber: form.elements.idNumber.value.trim(),
+        idDocumentUrl: form.elements.idDocumentUrl.value.trim(),
+        isHumanCheck: form.elements.isHumanCheck.checked,
         createdAt: new Date().toISOString()
       };
 
       if (!hasValidQualifications(application.qualifications)) {
         setStatus(status, 'Please enter valid qualifications (degree, certification, or teaching license).', 'error');
+        return;
+      }
+
+      if (!hasValidIdSubmission(application)) {
+        setStatus(status, 'Please complete the ID verification box and bot check with valid details.', 'error');
         return;
       }
 
@@ -463,7 +488,7 @@
       try {
         await createTutorApplication(application);
         form.reset();
-        setStatus(status, 'Application submitted and qualification bot marked it as verified.', 'success');
+        setStatus(status, 'Application submitted. Qualification + ID bot checks marked your profile as verified.', 'success');
       } catch {
         setStatus(status, 'Could not submit application right now. Please try again.', 'error');
       }
