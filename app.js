@@ -158,7 +158,10 @@
     const unavailablePattern = /\b(unavailable|not(?:\s+\w+){0,2}\s+available|no\s+availability|fully\s+booked|booked\s+out)\b/;
     if (unavailablePattern.test(availability)) return 'waitlist';
 
-    if (/\b(available\s+now|immediately\s+available|open\s+slots?|openings?|accepting\s+students?|available)\b/.test(availability)) {
+    const notAcceptingStudentsPattern = /\b(?:not|no\s+longer|isn['’]?t|aren['’]?t|currently\s+not)\s+accepting\s+students?\b/;
+    if (notAcceptingStudentsPattern.test(availability)) return 'waitlist';
+
+    if (/\b(available\s+now|immediately\s+available|open\s+slots?|openings?|accepting\s+students?)\b/.test(availability)) {
       return 'available';
     }
 
