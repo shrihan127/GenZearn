@@ -125,6 +125,60 @@
     return recognizedCredentialPattern.test(value);
   }
 
+  function createConsistentScore(seedValue, min, max) {
+    const seed = String(seedValue || 'genzearn');
+    const hash = seed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const normalized = (Math.sin(hash) + 1) / 2;
+    return min + normalized * (max - min);
+  }
+
+  function getAvailabilityLabel(tutor) {
+    const providedAvailability = String(tutor.availability || '').trim().toLowerCase();
+    if (providedAvailability.includes('available')) return 'available';
+    if (providedAvailability.includes('limited')) return 'limited';
+    if (providedAvailability.includes('waitlist')) return 'waitlist';
+
+    const fallbackScore = createConsistentScore(tutor.email || tutor.fullName, 0, 1);
+    if (fallbackScore >= 0.7) return 'available';
+    if (fallbackScore >= 0.35) return 'limited';
+    return 'waitlist';
+  }
+
+  function enrichTutor(tutor) {
+    const rating = Number(tutor.rating) || createConsistentScore(tutor.fullName, 3.4, 5);
+    const availability = getAvailabilityLabel(tutor);
+    return {
+      ...tutor,
+      rating: Number(rating.toFixed(1)),
+      availability
+    };
+  }
+
+  function getAvailabilityText(availability) {
+    if (availability === 'available') return 'Available now';
+    if (availability === 'limited') return 'Limited slots';
+    return 'Waitlist';
+  }
+
+  function getTutorFilters() {
+    return {
+      subject: String(document.getElementById('subjectFilter')?.value || '').trim().toLowerCase(),
+      maxPrice: Number(document.getElementById('priceFilter')?.value || 0),
+      minRating: Number(document.getElementById('ratingFilter')?.value || 0),
+      availability: String(document.getElementById('availabilityFilter')?.value || 'any')
+    };
+  }
+
+  function filterTutors(tutors, filters) {
+    return tutors.filter((tutor) => {
+      const subjectMatch = !filters.subject || String(tutor.subjects).toLowerCase().includes(filters.subject);
+      const priceMatch = !filters.maxPrice || Number(tutor.hourlyRate) <= filters.maxPrice;
+      const ratingMatch = Number(tutor.rating) >= filters.minRating;
+      const availabilityMatch = filters.availability === 'any' || tutor.availability === filters.availability;
+      return subjectMatch && priceMatch && ratingMatch && availabilityMatch;
+    });
+  }
+
   function renderTutorList(tutors) {
     const tutorList = document.getElementById('tutorList');
     if (!tutorList) return;
@@ -140,6 +194,8 @@
         const subject = String(tutor.subjects);
         const fullName = String(tutor.fullName);
         const qualifications = String(tutor.qualifications);
+        const rating = Number(tutor.rating).toFixed(1);
+        const availability = getAvailabilityText(tutor.availability);
         const experience = tutor.experience ? `<p><strong>Experience:</strong> ${tutor.experience}</p>` : '';
         const verificationLabel = tutor.verification
           ? `<p class="verification-pill ${tutor.verification.status}">${tutor.verification.message}</p>`
@@ -151,6 +207,8 @@
             <p><strong>Subject:</strong> ${subject}</p>
             <p><strong>Qualifications:</strong> ${qualifications}</p>
             <p><strong>Rate:</strong> $${rate} / hour</p>
+            <p><strong>Rating:</strong> ⭐ ${rating}</p>
+            <p><strong>Availability:</strong> ${availability}</p>
             ${experience}
             ${verificationLabel}
             <div class="tutor-card-actions">
@@ -189,8 +247,24 @@
 
     try {
       const applications = await getTutorApplications();
-      const tutors = normalizeTutorList(applications).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-      renderTutorList(tutors);
+      const tutors = normalizeTutorList(applications)
+        .map(enrichTutor)
+        .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+      const applyFiltersAndRender = function () {
+        const filters = getTutorFilters();
+        const filteredTutors = filterTutors(tutors, filters);
+        renderTutorList(filteredTutors);
+      };
+
+      ['subjectFilter', 'priceFilter', 'ratingFilter', 'availabilityFilter'].forEach((id) => {
+        const control = document.getElementById(id);
+        if (!control) return;
+        control.addEventListener('input', applyFiltersAndRender);
+        control.addEventListener('change', applyFiltersAndRender);
+      });
+
+      applyFiltersAndRender();
     } catch {
       tutorList.innerHTML = '<p class="status-message error">Could not load tutors right now. Please refresh and try again.</p>';
     }
