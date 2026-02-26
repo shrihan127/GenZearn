@@ -188,6 +188,36 @@
 
     const hasRepeatedChars = /(.)\1{5,}/.test(idNumber);
 
+    let hasSuspiciousUrl = true;
+    try {
+      const parsedUrl = new URL(idDocumentUrl);
+      const host = parsedUrl.hostname.toLowerCase();
+      const hostLabels = host.split('.').filter(Boolean);
+
+      const suspiciousHostLabels = new Set(['test', 'temp', 'fake', 'dummy', 'invalid', 'localhost']);
+      const suspiciousHostnames = new Set(['example.com', 'example.org', 'test.com', 'localhost']);
+      const hasSuspiciousHostLabel = hostLabels.some((label) => suspiciousHostLabels.has(label));
+      const hasSuspiciousHostname = suspiciousHostnames.has(host);
+
+      const suspiciousPathWordPattern = /(^|[\W_])(fake|dummy|placeholder|sample)([\W_]|$)/i;
+      const hasSuspiciousPathWord = suspiciousPathWordPattern.test(parsedUrl.pathname);
+
+      hasSuspiciousUrl = !['http:', 'https:'].includes(parsedUrl.protocol)
+        || hasSuspiciousHostLabel
+        || hasSuspiciousHostname
+        || hasSuspiciousPathWord;
+    } catch {
+      hasSuspiciousUrl = true;
+    }
+
+    if (!idType) {
+      return {
+        status: 'rejected',
+        reason: 'ID type is required for verification.',
+        checkedAt: new Date().toISOString()
+      };
+    }
+
     if (!hasValidPattern || hasSuspiciousUrl || hasRepeatedChars) {
       return {
         status: 'rejected',
