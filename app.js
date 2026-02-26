@@ -85,6 +85,11 @@
     await db.ref('tutorApplications').push(application);
   }
 
+  async function removeTutorApplication(remoteKey) {
+    if (!db || !remoteKey) return;
+    await db.ref(`tutorApplications/${remoteKey}`).remove();
+  }
+
   async function createSessionRequest(request) {
     if (!db) return;
     await db.ref('sessionRequests').push(request);
@@ -95,7 +100,10 @@
     if (!db) return localApplications;
 
     const snapshot = await db.ref('tutorApplications').once('value');
-    const remoteApplications = Object.values(snapshot.val() || {});
+    const remoteApplications = Object.entries(snapshot.val() || {}).map(([key, value]) => ({
+      ...value,
+      _remoteKey: key
+    }));
     return [...remoteApplications, ...localApplications];
   }
 
@@ -112,6 +120,7 @@
           && application.subjects
           && application.qualifications
           && application.qualificationsVerified === true
+          && application.idVerification?.status === 'approved'
           && Number(application.hourlyRate)
       );
     });
@@ -141,67 +150,58 @@
     }
   }
 
-  function getAvailabilityLabel(providedAvailability) {
-    const availability = String(providedAvailability || '').trim().toLowerCase();
+  function verifyIdWithBot(application) {
+    const idType = String(application.idType || '').trim();
+    const idNumber = String(application.idNumber || '').trim().toUpperCase();
+    const idDocumentUrl = String(application.idDocumentUrl || '').trim().toLowerCase();
 
-    if (!availability) return 'waitlist';
+    const idPatterns = {
+      Passport: /^[A-Z0-9]{6,12}$/,
+      'National ID': /^[A-Z0-9\-]{6,18}$/,
+      'Driver License': /^[A-Z0-9\-]{6,16}$/
+    };
 
-    const unavailablePattern = /\b(unavailable|not\s+available|no\s+availability|fully\s+booked|booked\s+out)\b/;
-    if (unavailablePattern.test(availability)) return 'waitlist';
+    const suspiciousTokens = ['example.com', 'test', 'fake', 'dummy', 'sample', 'temp'];
+    const hasValidPattern = idPatterns[idType] ? idPatterns[idType].test(idNumber) : false;
+    const hasSuspiciousUrl = suspiciousTokens.some((token) => idDocumentUrl.includes(token));
+    const hasRepeatedChars = /(.)\1{5,}/.test(idNumber);
 
-    if (/\b(available\s+now|immediately\s+available|open\s+slots?|openings?|accepting\s+students?)\b/.test(availability)) {
-      return 'available';
+    if (!hasValidPattern || hasSuspiciousUrl || hasRepeatedChars) {
+      return {
+        status: 'rejected',
+        reason: 'ID bot could not confirm this ID. Please re-submit with a legitimate ID number and document link.',
+        checkedAt: new Date().toISOString()
+      };
     }
 
-    if (/\b(limited|few\s+slots?|partially\s+available|some\s+availability)\b/.test(availability)) {
-      return 'limited';
-    }
-
-    if (availability.includes('available')) return 'available';
-
-    return 'waitlist';
-  }
-
-  function getAvailabilityText(providedAvailability) {
-    const label = getAvailabilityLabel(providedAvailability);
-    if (label === 'available') return 'Available now';
-    if (label === 'limited') return 'Limited slots';
-    return 'Waitlist';
-  }
-
-  function getTutorFilters() {
     return {
-      subject: String(document.getElementById('subjectFilter')?.value || '').trim().toLowerCase(),
-      maxPrice: Number(document.getElementById('priceFilter')?.value || 0),
-      minRating: Number(document.getElementById('ratingFilter')?.value || 0),
-      availability: String(document.getElementById('availabilityFilter')?.value || 'any')
+      status: 'approved',
+      reason: 'ID bot verified this submission as valid.',
+      checkedAt: new Date().toISOString()
     };
   }
 
-  function enrichTutor(tutor) {
-    const rating = Number(tutor.rating);
-    const safeRating = Number.isFinite(rating) && rating > 0 ? rating : 4.5;
-    return {
-      ...tutor,
-      rating: Math.min(5, Math.max(0, safeRating)),
-      availability: getAvailabilityLabel(tutor.availability)
-    };
-  }
+  async function purgeRejectedApplications() {
+    const localApplications = loadJson(STORAGE_KEYS.tutorApps, []);
+    const approvedLocalApplications = localApplications.filter(
+      (application) => application.idVerification?.status !== 'rejected'
+    );
 
-  function filterTutors(tutors, filters) {
-    return tutors.filter((tutor) => {
-      const subject = String(tutor.subjects || '').toLowerCase();
-      const rate = Number(tutor.hourlyRate);
-      const rating = Number(tutor.rating);
-      const availabilityLabel = getAvailabilityLabel(tutor.availability);
+    if (approvedLocalApplications.length !== localApplications.length) {
+      saveJson(STORAGE_KEYS.tutorApps, approvedLocalApplications);
+    }
 
-      if (filters.subject && !subject.includes(filters.subject)) return false;
-      if (filters.maxPrice > 0 && rate > filters.maxPrice) return false;
-      if (filters.minRating > 0 && rating < filters.minRating) return false;
-      if (filters.availability !== 'any' && availabilityLabel !== filters.availability) return false;
+    if (!db) return;
 
-      return true;
-    });
+    const snapshot = await db.ref('tutorApplications').once('value');
+    const remoteEntries = Object.entries(snapshot.val() || {});
+    const deleteJobs = remoteEntries
+      .filter(([, application]) => application?.idVerification?.status === 'rejected')
+      .map(([remoteKey]) => removeTutorApplication(remoteKey));
+
+    if (deleteJobs.length) {
+      await Promise.allSettled(deleteJobs);
+    }
   }
 
   function renderTutorList(tutors) {
@@ -271,6 +271,7 @@
     tutorList.innerHTML = '<p class="status-message">Loading tutors...</p>';
 
     try {
+      await purgeRejectedApplications();
       const applications = await getTutorApplications();
       const tutors = normalizeTutorList(applications)
         .map(enrichTutor)
@@ -562,6 +563,13 @@
         return;
       }
 
+      const idVerification = verifyIdWithBot(application);
+      application.idVerification = idVerification;
+      if (idVerification.status !== 'approved') {
+        setStatus(status, idVerification.reason, 'error');
+        return;
+      }
+
       application.qualificationsVerified = true;
 
       const apps = loadJson(STORAGE_KEYS.tutorApps, []);
@@ -571,7 +579,7 @@
       try {
         await createTutorApplication(application);
         form.reset();
-        setStatus(status, 'Application submitted. Qualification + ID bot checks marked your profile as verified.', 'success');
+        setStatus(status, 'Application submitted. Qualification + ID bot checks approved your profile.', 'success');
       } catch {
         setStatus(status, 'Could not submit application right now. Please try again.', 'error');
       }
