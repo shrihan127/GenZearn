@@ -85,10 +85,6 @@
     await db.ref('tutorApplications').push(application);
   }
 
-  async function removeTutorApplication(remoteKey) {
-    if (!db || !remoteKey) return;
-    await db.ref(`tutorApplications/${remoteKey}`).remove();
-  }
 
   async function createSessionRequest(request) {
     if (!db) return;
@@ -120,7 +116,6 @@
           && application.subjects
           && application.qualifications
           && application.qualificationsVerified === true
-          && application.idVerification?.status === 'approved'
           && Number(application.hourlyRate)
       );
     });
@@ -284,28 +279,6 @@
     });
   }
 
-  async function purgeRejectedApplications() {
-    const localApplications = loadJson(STORAGE_KEYS.tutorApps, []);
-    const approvedLocalApplications = localApplications.filter(
-      (application) => application.idVerification?.status !== 'rejected'
-    );
-
-    if (approvedLocalApplications.length !== localApplications.length) {
-      saveJson(STORAGE_KEYS.tutorApps, approvedLocalApplications);
-    }
-
-    if (!db) return;
-
-    const snapshot = await db.ref('tutorApplications').once('value');
-    const remoteEntries = Object.entries(snapshot.val() || {});
-    const deleteJobs = remoteEntries
-      .filter(([, application]) => application?.idVerification?.status === 'rejected')
-      .map(([remoteKey]) => removeTutorApplication(remoteKey));
-
-    if (deleteJobs.length) {
-      await Promise.allSettled(deleteJobs);
-    }
-  }
 
   function renderTutorList(tutors) {
     const tutorList = document.getElementById('tutorList');
@@ -374,7 +347,6 @@
     tutorList.innerHTML = '<p class="status-message">Loading tutors...</p>';
 
     try {
-      await purgeRejectedApplications();
       const applications = await getTutorApplications();
       const tutors = normalizeTutorList(applications)
         .map(enrichTutor)
@@ -649,10 +621,6 @@
         experience: form.elements.experience.value.trim(),
         qualificationProof: form.elements.qualificationProof.value.trim(),
         referral: form.elements.referral.value.trim(),
-        idType: form.elements.idType.value,
-        idNumber: form.elements.idNumber.value.trim(),
-        idDocumentUrl: form.elements.idDocumentUrl.value.trim(),
-        isHumanCheck: form.elements.isHumanCheck.checked,
         createdAt: new Date().toISOString()
       };
 
@@ -687,7 +655,7 @@
       try {
         await createTutorApplication(application);
         form.reset();
-        setStatus(status, 'Application submitted. Qualification + ID bot checks approved your profile.', 'success');
+        setStatus(status, 'Application submitted. Qualification checks approved your profile.', 'success');
       } catch {
         setStatus(status, 'Could not submit application right now. Please try again.', 'error');
       }
