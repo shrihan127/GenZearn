@@ -129,17 +129,6 @@
     return recognizedCredentialPattern.test(value);
   }
 
-  function hasValidQualificationProof(qualificationProof) {
-    const value = String(qualificationProof || '').trim();
-    if (!value) return true;
-    if (value.length < 10) return false;
-
-    const recognizedProofPattern = /\b(issuing body|certificate|certification|license|licensed|credential|portfolio|transcript|recent grades?|grade report|mark\s?sheet)\b/i;
-    const hasLink = /https?:\/\/\S+/i.test(value);
-    const hasCertificateId = /\b[a-z0-9][a-z0-9\-]{4,}\b/i.test(value);
-    return recognizedProofPattern.test(value) || hasLink || hasCertificateId;
-  }
-
   function hasValidIdSubmission(application) {
     const idNumber = String(application.idNumber || '').trim();
     const idLink = String(application.idDocumentUrl || '').trim();
@@ -681,7 +670,6 @@
         hourlyRate: Number(form.elements.hourlyRate.value),
         paymentMethod: form.elements.paymentMethod.value.trim(),
         experience: form.elements.experience.value.trim(),
-        qualificationProof: form.elements.qualificationProof.value.trim(),
         qualificationProofFiles: selectedProofFiles.map((file) => ({
           name: file.name,
           size: file.size,
@@ -693,11 +681,6 @@
 
       if (!hasValidQualifications(application.qualifications)) {
         setStatus(status, 'Please enter valid qualifications (degree, certification, or teaching license).', 'error');
-        return;
-      }
-
-      if (!hasValidQualificationProof(application.qualificationProof)) {
-        setStatus(status, 'Please provide valid qualification proof details (issuing body, certificate info, portfolio link, or recent grades).', 'error');
         return;
       }
 
