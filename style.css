@@ -414,6 +414,23 @@ footer {
   margin-top: auto;
 }
 
+.footer-links {
+  margin-top: 8px;
+}
+
+.footer-links a {
+  color: #ffd700;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.footer-links a:hover {
+  text-decoration: underline;
+}
+
+
+
+
 @keyframes fadeIn {
   from {
     opacity: 0;
