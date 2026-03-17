@@ -414,6 +414,37 @@ footer {
   margin-top: auto;
 }
 
+.footer-links {
+  margin-top: 8px;
+}
+
+.footer-links a {
+  color: #ffd700;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.footer-links a:hover {
+  text-decoration: underline;
+}
+
+.terms-section {
+  text-align: left;
+}
+
+.terms-content {
+  max-width: 900px;
+  margin: 0 auto;
+  line-height: 1.7;
+  display: grid;
+  gap: 14px;
+}
+
+.terms-content a {
+  color: #ffd700;
+  font-weight: 600;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
