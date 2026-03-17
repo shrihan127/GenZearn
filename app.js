@@ -129,17 +129,6 @@
     return recognizedCredentialPattern.test(value);
   }
 
-  function hasValidQualificationProof(qualificationProof) {
-    const value = String(qualificationProof || '').trim();
-    if (!value) return true;
-    if (value.length < 10) return false;
-
-    const recognizedProofPattern = /\b(issuing body|certificate|certification|license|licensed|credential|portfolio|transcript|recent grades?|grade report|mark\s?sheet)\b/i;
-    const hasLink = /https?:\/\/\S+/i.test(value);
-    const hasCertificateId = /\b[a-z0-9][a-z0-9\-]{4,}\b/i.test(value);
-    return recognizedProofPattern.test(value) || hasLink || hasCertificateId;
-  }
-
   function hasValidIdSubmission(application) {
     const idNumber = String(application.idNumber || '').trim();
     const idLink = String(application.idDocumentUrl || '').trim();
@@ -602,6 +591,68 @@
     const form = document.getElementById('tutorApplicationForm');
     if (!form) return;
 
+    const proofInput = form.elements.qualificationProofFiles;
+    const proofDropzone = document.getElementById('qualificationProofDropzone');
+    const proofFileList = document.getElementById('qualificationProofFileList');
+    let selectedProofFiles = [];
+
+    function renderProofFiles() {
+      if (!proofFileList) return;
+      proofFileList.innerHTML = '';
+      selectedProofFiles.forEach((file) => {
+        const item = document.createElement('li');
+        item.textContent = `${file.name} (${Math.max(1, Math.round(file.size / 1024))} KB)`;
+        proofFileList.appendChild(item);
+      });
+    }
+
+    function mergeProofFiles(incomingFiles) {
+      const unique = new Map(selectedProofFiles.map((file) => [`${file.name}-${file.size}-${file.lastModified}`, file]));
+      Array.from(incomingFiles).forEach((file) => {
+        const key = `${file.name}-${file.size}-${file.lastModified}`;
+        unique.set(key, file);
+      });
+      selectedProofFiles = Array.from(unique.values()).slice(0, 5);
+      renderProofFiles();
+    }
+
+    if (proofInput) {
+      proofInput.addEventListener('change', function () {
+        mergeProofFiles(proofInput.files || []);
+        proofInput.value = '';
+      });
+    }
+
+    if (proofDropzone && proofInput) {
+      proofDropzone.addEventListener('click', function () {
+        proofInput.click();
+      });
+
+      proofDropzone.addEventListener('keydown', function (event) {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        proofInput.click();
+      });
+
+      ['dragenter', 'dragover'].forEach((eventName) => {
+        proofDropzone.addEventListener(eventName, function (event) {
+          event.preventDefault();
+          proofDropzone.classList.add('active');
+        });
+      });
+
+      ['dragleave', 'drop'].forEach((eventName) => {
+        proofDropzone.addEventListener(eventName, function (event) {
+          event.preventDefault();
+          proofDropzone.classList.remove('active');
+        });
+      });
+
+      proofDropzone.addEventListener('drop', function (event) {
+        mergeProofFiles(event.dataTransfer?.files || []);
+      });
+    }
+
     const status = document.getElementById('tutorApplicationStatus');
     const current = getCurrentUser();
     if (current) {
@@ -619,18 +670,17 @@
         hourlyRate: Number(form.elements.hourlyRate.value),
         paymentMethod: form.elements.paymentMethod.value.trim(),
         experience: form.elements.experience.value.trim(),
-        qualificationProof: form.elements.qualificationProof.value.trim(),
+        qualificationProofFiles: selectedProofFiles.map((file) => ({
+          name: file.name,
+          size: file.size,
+          type: file.type || 'application/octet-stream'
+        })),
         referral: form.elements.referral.value.trim(),
         createdAt: new Date().toISOString()
       };
 
       if (!hasValidQualifications(application.qualifications)) {
         setStatus(status, 'Please enter valid qualifications (degree, certification, or teaching license).', 'error');
-        return;
-      }
-
-      if (!hasValidQualificationProof(application.qualificationProof)) {
-        setStatus(status, 'Please provide valid qualification proof details (issuing body, certificate info, portfolio link, or recent grades).', 'error');
         return;
       }
 
@@ -655,6 +705,8 @@
       try {
         await createTutorApplication(application);
         form.reset();
+        selectedProofFiles = [];
+        renderProofFiles();
         setStatus(status, 'Application submitted. Qualification checks approved your profile.', 'success');
       } catch {
         setStatus(status, 'Could not submit application right now. Please try again.', 'error');
