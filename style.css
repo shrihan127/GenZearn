@@ -593,3 +593,40 @@ footer {
   transform: translateY(-2px);
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
 }
+
+.legal-page {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 40px 16px 60px;
+}
+
+.legal-card {
+  width: min(900px, 100%);
+  background: #003a92;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  line-height: 1.6;
+}
+
+.legal-card h1 {
+  color: #ffd700;
+  margin-bottom: 8px;
+}
+
+.legal-card h2 {
+  color: #ffd700;
+  margin-top: 20px;
+  margin-bottom: 8px;
+  font-size: 1.15rem;
+}
+
+.legal-updated {
+  opacity: 0.9;
+  margin-bottom: 12px;
+}
+
+.legal-card a {
+  color: #ffd700;
+}
