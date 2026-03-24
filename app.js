@@ -125,6 +125,10 @@
       return;
     }
 
+    if (!cloudDatabaseURL) {
+      throw new Error('Cloud sync is not configured.');
+    }
+
     await cloudPost('tutorApplications', application);
   }
 
@@ -142,6 +146,8 @@
     const localApplications = loadJson(STORAGE_KEYS.tutorApps, []);
     if (!db && !cloudDatabaseURL) return localApplications;
 
+    await syncLocalTutorApplications(localApplications);
+
     const remoteData = db
       ? (await db.ref('tutorApplications').once('value')).val()
       : await cloudRead('tutorApplications');
@@ -154,6 +160,25 @@
 
   function isCloudSyncEnabled() {
     return Boolean(db || cloudDatabaseURL);
+  }
+
+  async function syncLocalTutorApplications(localApplications) {
+    if (!localApplications.length || !isCloudSyncEnabled()) return;
+
+    const remoteData = db
+      ? (await db.ref('tutorApplications').once('value')).val()
+      : await cloudRead('tutorApplications');
+    const remoteApplications = Object.values(remoteData || {});
+    const remoteKeys = new Set(
+      remoteApplications.map((application) => `${String(application.email || '').trim().toLowerCase()}|${application.createdAt || ''}`)
+    );
+
+    for (const application of localApplications) {
+      const dedupeKey = `${String(application.email || '').trim().toLowerCase()}|${application.createdAt || ''}`;
+      if (remoteKeys.has(dedupeKey)) continue;
+      await createTutorApplication(application);
+      remoteKeys.add(dedupeKey);
+    }
   }
 
   function normalizeTutorList(applications) {
@@ -668,24 +693,28 @@
         message: 'Bot check removed from tutor application flow.'
       };
 
-      if (!isCloudSyncEnabled()) {
-        setStatus(
-          status,
-          'Tutor profile could not be published for all users because cloud sync is not configured. Update firebase-config.js and try again.',
-          'error'
-        );
-        return;
-      }
-
       try {
-        await createTutorApplication(application);
         const apps = loadJson(STORAGE_KEYS.tutorApps, []);
         apps.push(application);
         saveJson(STORAGE_KEYS.tutorApps, apps);
+
+        if (isCloudSyncEnabled()) {
+          await createTutorApplication(application);
+          await syncLocalTutorApplications(apps);
+        }
+
         form.reset();
         selectedProofFiles = [];
         renderProofFiles();
-        setStatus(status, 'Application submitted. Qualification checks approved your profile.', 'success');
+        if (isCloudSyncEnabled()) {
+          setStatus(status, 'Application submitted. Qualification checks approved your profile.', 'success');
+        } else {
+          setStatus(
+            status,
+            'Application saved on this device. Configure firebase-config.js to publish tutor profiles for all users.',
+            'error'
+          );
+        }
       } catch (error) {
         const fallbackMessage = 'Could not submit application right now. Please try again.';
         const details = error && typeof error.message === 'string' ? error.message : '';
