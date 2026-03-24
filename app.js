@@ -504,6 +504,93 @@
 
     const status = document.getElementById('signupStatus');
     const submitButton = form.querySelector('button[type="submit"]');
+    const roleSelect = form.elements.role;
+    const tutorFields = document.getElementById('signupTutorVerificationFields');
+    const proofInput = form.elements.signupQualificationProofFiles;
+    const proofDropzone = document.getElementById('signupQualificationProofDropzone');
+    const proofFileList = document.getElementById('signupQualificationProofFileList');
+    let selectedProofFiles = [];
+
+    function renderProofFiles() {
+      if (!proofFileList) return;
+      proofFileList.innerHTML = '';
+      selectedProofFiles.forEach((file) => {
+        const item = document.createElement('li');
+        item.textContent = `${file.name} (${Math.max(1, Math.round(file.size / 1024))} KB)`;
+        proofFileList.appendChild(item);
+      });
+    }
+
+    function mergeProofFiles(incomingFiles) {
+      const unique = new Map(selectedProofFiles.map((file) => [`${file.name}-${file.size}-${file.lastModified}`, file]));
+      Array.from(incomingFiles).forEach((file) => {
+        const key = `${file.name}-${file.size}-${file.lastModified}`;
+        unique.set(key, file);
+      });
+      selectedProofFiles = Array.from(unique.values()).slice(0, 5);
+      renderProofFiles();
+    }
+
+    function clearTutorProofFiles() {
+      selectedProofFiles = [];
+      renderProofFiles();
+      if (proofInput) proofInput.value = '';
+    }
+
+    function updateTutorFieldsVisibility() {
+      if (!tutorFields) return;
+      const isTutor = roleSelect?.value === 'tutor';
+      tutorFields.classList.toggle('hidden', !isTutor);
+      if (!isTutor) {
+        if (form.elements.qualifications) {
+          form.elements.qualifications.value = '';
+        }
+        clearTutorProofFiles();
+      }
+    }
+
+    if (proofInput) {
+      proofInput.addEventListener('change', function () {
+        mergeProofFiles(proofInput.files || []);
+        proofInput.value = '';
+      });
+    }
+
+    if (proofDropzone && proofInput) {
+      proofDropzone.addEventListener('click', function () {
+        proofInput.click();
+      });
+
+      proofDropzone.addEventListener('keydown', function (event) {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        proofInput.click();
+      });
+
+      ['dragenter', 'dragover'].forEach((eventName) => {
+        proofDropzone.addEventListener(eventName, function (event) {
+          event.preventDefault();
+          proofDropzone.classList.add('active');
+        });
+      });
+
+      ['dragleave', 'drop'].forEach((eventName) => {
+        proofDropzone.addEventListener(eventName, function (event) {
+          event.preventDefault();
+          proofDropzone.classList.remove('active');
+        });
+      });
+
+      proofDropzone.addEventListener('drop', function (event) {
+        mergeProofFiles(event.dataTransfer?.files || []);
+      });
+    }
+
+    if (roleSelect) {
+      roleSelect.addEventListener('change', updateTutorFieldsVisibility);
+      updateTutorFieldsVisibility();
+    }
+
     form.addEventListener('submit', async function (event) {
       event.preventDefault();
       if (submitButton) submitButton.disabled = true;
@@ -514,12 +601,43 @@
       const role = form.elements.role.value;
       const primarySubject = form.elements.primarySubject.value.trim();
       const followUpConsent = Boolean(form.elements.followUpConsent?.checked);
+      const qualificationText = String(form.elements.qualifications?.value || '').trim();
+      const allowedProofExtensions = /\.(pdf|doc|docx|png|jpe?g)$/i;
+      const credentialFileKeywordPattern = /\b(degree|diploma|certificate|certification|credential|license|licence|transcript|qualification|bachelor|master|phd|doctorate)\b/i;
 
       const users = loadJson(STORAGE_KEYS.users, []);
       if (users.some((u) => u.email === email)) {
         setStatus(status, 'An account with this email already exists. Please log in.', 'error');
         if (submitButton) submitButton.disabled = false;
         return;
+      }
+
+      if (role === 'tutor') {
+        if (!hasValidQualifications(qualificationText)) {
+          setStatus(status, 'Tutor signup rejected: add a valid degree/certification/license in the qualification field.', 'error');
+          if (submitButton) submitButton.disabled = false;
+          return;
+        }
+
+        if (!selectedProofFiles.length) {
+          setStatus(status, 'Tutor signup rejected: upload at least one qualification document.', 'error');
+          if (submitButton) submitButton.disabled = false;
+          return;
+        }
+
+        const hasUnsupportedFiles = selectedProofFiles.some((file) => !allowedProofExtensions.test(file.name || ''));
+        if (hasUnsupportedFiles) {
+          setStatus(status, 'Tutor signup rejected: unsupported file type detected. Upload PDF, DOC/DOCX, PNG, or JPG only.', 'error');
+          if (submitButton) submitButton.disabled = false;
+          return;
+        }
+
+        const hasCredentialLikeFile = selectedProofFiles.some((file) => credentialFileKeywordPattern.test(String(file.name || '')));
+        if (!hasCredentialLikeFile) {
+          setStatus(status, 'Tutor signup rejected by verification bot: file names do not appear to contain a valid degree or qualification proof.', 'error');
+          if (submitButton) submitButton.disabled = false;
+          return;
+        }
       }
 
       try {
@@ -536,7 +654,23 @@
         }
 
         const createdAt = new Date().toISOString();
-        const user = { name, email, password, role, primarySubject, followUpConsent, createdAt };
+        const user = {
+          name,
+          email,
+          password,
+          role,
+          primarySubject,
+          followUpConsent,
+          createdAt,
+          qualifications: role === 'tutor' ? qualificationText : '',
+          qualificationProofFiles: role === 'tutor'
+            ? selectedProofFiles.map((file) => ({
+              name: file.name,
+              size: file.size,
+              type: file.type || 'application/octet-stream'
+            }))
+            : []
+        };
         users.push(user);
         saveJson(STORAGE_KEYS.users, users);
 
@@ -548,6 +682,9 @@
 
         setCurrentUser({ name: user.name, email: user.email, role: user.role });
         initializeOnboardingForUser(user);
+        form.reset();
+        clearTutorProofFiles();
+        updateTutorFieldsVisibility();
 
         setStatus(status, 'Account created! Redirecting to onboarding...', 'success');
         setTimeout(() => {
