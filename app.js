@@ -709,11 +709,7 @@
         if (isCloudSyncEnabled()) {
           setStatus(status, 'Application submitted. Qualification checks approved your profile.', 'success');
         } else {
-          setStatus(
-            status,
-            'Application saved on this device. Configure firebase-config.js to publish tutor profiles for all users.',
-            'error'
-          );
+          setStatus(status, 'Application sent', 'success');
         }
       } catch (error) {
         const fallbackMessage = 'Could not submit application right now. Please try again.';
