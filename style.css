@@ -88,6 +88,11 @@ body {
   animation: fadeIn 2s ease;
 }
 
+.hero .hero-proof {
+  font-size: 1rem;
+  opacity: 0.95;
+}
+
 .cta-row {
   display: flex;
   justify-content: center;
