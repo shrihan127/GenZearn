@@ -153,7 +153,7 @@
   function verifyIdWithBot(application) {
     const idType = String(application.idType || '').trim();
     const idNumber = String(application.idNumber || '').trim().toUpperCase();
-    const idDocumentUrl = String(application.idDocumentUrl || '').trim().toLowerCase();
+    const idDocumentUrl = String(application.idDocumentUrl || '').trim();
 
     const idPatterns = {
       Passport: /^[A-Z0-9]{6,12}$/,
@@ -161,9 +161,25 @@
       'Driver License': /^[A-Z0-9\-]{6,16}$/
     };
 
-    const suspiciousTokens = ['example.com', 'test', 'fake', 'dummy', 'sample', 'temp'];
+    const suspiciousHosts = ['example.com'];
+    const suspiciousKeywords = ['test', 'fake', 'dummy', 'sample', 'temp'];
     const hasValidPattern = idPatterns[idType] ? idPatterns[idType].test(idNumber) : false;
-    const hasSuspiciousUrl = suspiciousTokens.some((token) => idDocumentUrl.includes(token));
+    const hasSuspiciousUrl = (() => {
+      try {
+        const parsedUrl = new URL(idDocumentUrl);
+        const normalizedHost = parsedUrl.hostname.toLowerCase();
+        const combinedPath = `${parsedUrl.pathname} ${parsedUrl.search} ${parsedUrl.hash}`.toLowerCase();
+        const keywordBoundaryPattern = new RegExp(`(^|[^a-z0-9])(${suspiciousKeywords.join('|')})([^a-z0-9]|$)`, 'i');
+
+        return (
+          suspiciousHosts.some((host) => normalizedHost === host || normalizedHost.endsWith(`.${host}`))
+          || keywordBoundaryPattern.test(normalizedHost)
+          || keywordBoundaryPattern.test(combinedPath)
+        );
+      } catch {
+        return true;
+      }
+    })();
     const hasRepeatedChars = /(.)\1{5,}/.test(idNumber);
 
     if (!hasValidPattern || hasSuspiciousUrl || hasRepeatedChars) {
