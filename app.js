@@ -146,7 +146,11 @@
     const localApplications = loadJson(STORAGE_KEYS.tutorApps, []);
     if (!db && !cloudDatabaseURL) return localApplications;
 
-    await syncLocalTutorApplications(localApplications);
+    try {
+      await syncLocalTutorApplications(localApplications);
+    } catch (error) {
+      console.warn('Local tutor application sync failed; continuing with remote tutor load.', error);
+    }
 
     const remoteData = db
       ? (await db.ref('tutorApplications').once('value')).val()
