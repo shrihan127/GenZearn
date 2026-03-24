@@ -42,6 +42,16 @@
         <option value="tutor">Tutor (I want to teach)</option>
       </select>
       <input type="text" name="primarySubject" placeholder="Primary Subject of Interest (or Teaching Subject)" required />
+      <div id="signupTutorVerificationFields" class="hidden">
+        <input type="text" name="qualifications" placeholder="Highest qualification (Degree, certification, or teaching license)" />
+        <label for="signupQualificationProofFiles" class="upload-label">Upload Degree / Qualification Proof</label>
+        <div id="signupQualificationProofDropzone" class="file-dropzone" tabindex="0" role="button" aria-label="Drop qualification proof files here or click to upload">
+          <p><strong>Drop PDF/files here</strong> or click to upload.</p>
+          <p class="file-dropzone-hint">Accepted: PDF, DOC, DOCX, PNG, JPG (up to 5 files)</p>
+        </div>
+        <input id="signupQualificationProofFiles" name="signupQualificationProofFiles" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" multiple hidden />
+        <ul id="signupQualificationProofFileList" class="upload-file-list" aria-live="polite"></ul>
+      </div>
       <button type="submit" class="btn primary">Create Account</button>
       <p class="form-legal-note">By creating an account, you agree to our <a href="terms-and-conditions.html">Terms &amp; Conditions</a> and <a href="privacy-policy.html">Privacy Policy</a>, including FERPA/COPPA protections for U.S. minors where applicable.</p>
     </form>
