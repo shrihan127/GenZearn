@@ -706,7 +706,11 @@
         form.reset();
         selectedProofFiles = [];
         renderProofFiles();
-        setStatus(status, 'Application approved.', 'success');
+        if (isCloudSyncEnabled()) {
+          setStatus(status, 'Application submitted. Qualification checks approved your profile.', 'success');
+        } else {
+          setStatus(status, 'Application sent', 'success');
+        }
       } catch (error) {
         const fallbackMessage = 'Could not submit application right now. Please try again.';
         const details = error && typeof error.message === 'string' ? error.message : '';
