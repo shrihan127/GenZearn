@@ -10,6 +10,7 @@
   const RESET_CODE_EXPIRY_MS = 10 * 60 * 1000;
 
   let db = null;
+  let cloudDatabaseURL = '';
   let activeResetCode = null;
 
   function hasUsableFirebaseConfig(config) {
@@ -20,6 +21,19 @@
       const value = config[key];
       return typeof value === 'string' && value.trim() !== '' && !value.includes('YOUR_');
     });
+  }
+
+  function hasUsableCloudDatabaseURL(config) {
+    if (!config || typeof config !== 'object') return false;
+    const rawUrl = typeof config.databaseURL === 'string' ? config.databaseURL.trim() : '';
+    if (!rawUrl || rawUrl.includes('YOUR_PROJECT_ID')) return false;
+
+    try {
+      const url = new URL(rawUrl);
+      return url.protocol === 'https:' && Boolean(url.hostname);
+    } catch {
+      return false;
+    }
   }
 
   function loadJson(key, fallback) {
@@ -49,12 +63,37 @@
   }
 
   function initFirebase() {
+    if (!hasUsableCloudDatabaseURL(window.firebaseConfig)) return;
+    cloudDatabaseURL = window.firebaseConfig.databaseURL.replace(/\/+$/, '');
+
     if (!window.firebase || !hasUsableFirebaseConfig(window.firebaseConfig)) return;
 
     if (!window.firebase.apps.length) {
       window.firebase.initializeApp(window.firebaseConfig);
     }
     db = window.firebase.database();
+  }
+
+  async function cloudPost(path, payload) {
+    if (!cloudDatabaseURL) return null;
+    const response = await fetch(`${cloudDatabaseURL}/${path}.json`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) {
+      throw new Error(`Cloud write failed (${response.status})`);
+    }
+    return response.json();
+  }
+
+  async function cloudRead(path) {
+    if (!cloudDatabaseURL) return null;
+    const response = await fetch(`${cloudDatabaseURL}/${path}.json`, { method: 'GET' });
+    if (!response.ok) {
+      throw new Error(`Cloud read failed (${response.status})`);
+    }
+    return response.json();
   }
 
   async function findUserByEmail(email) {
@@ -81,22 +120,32 @@
   }
 
   async function createTutorApplication(application) {
-    if (!db) return;
-    await db.ref('tutorApplications').push(application);
+    if (db) {
+      await db.ref('tutorApplications').push(application);
+      return;
+    }
+
+    await cloudPost('tutorApplications', application);
   }
 
 
   async function createSessionRequest(request) {
-    if (!db) return;
-    await db.ref('sessionRequests').push(request);
+    if (db) {
+      await db.ref('sessionRequests').push(request);
+      return;
+    }
+
+    await cloudPost('sessionRequests', request);
   }
 
   async function getTutorApplications() {
     const localApplications = loadJson(STORAGE_KEYS.tutorApps, []);
-    if (!db) return localApplications;
+    if (!db && !cloudDatabaseURL) return localApplications;
 
-    const snapshot = await db.ref('tutorApplications').once('value');
-    const remoteApplications = Object.entries(snapshot.val() || {}).map(([key, value]) => ({
+    const remoteData = db
+      ? (await db.ref('tutorApplications').once('value')).val()
+      : await cloudRead('tutorApplications');
+    const remoteApplications = Object.entries(remoteData || {}).map(([key, value]) => ({
       ...value,
       _remoteKey: key
     }));
@@ -104,7 +153,7 @@
   }
 
   function isCloudSyncEnabled() {
-    return Boolean(db);
+    return Boolean(db || cloudDatabaseURL);
   }
 
   function normalizeTutorList(applications) {

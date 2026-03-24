@@ -1,4 +1,5 @@
 // Replace these placeholder values with your Firebase project configuration.
+// At minimum, set databaseURL to enable shared tutor profile cloud sync.
 window.firebaseConfig = {
   apiKey: "YOUR_API_KEY",
   authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
