@@ -1,11 +1,9 @@
-// Replace these placeholder values with your Firebase project configuration.
-// At minimum, set databaseURL to enable shared tutor profile cloud sync.
 window.firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  apiKey: "AIzaSyDbx4s8Q8z4NwWQmY7aJvY1fVv4wq9cW5M",
+  authDomain: "genzearn.firebaseapp.com",
   databaseURL: "https://genzearn-default-rtdb.firebaseio.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  projectId: "genzearn",
+  storageBucket: "genzearn.firebasestorage.app",
+  messagingSenderId: "497261803615",
+  appId: "1:497261803615:web:9d7f5e13c5ce12a940f4d8"
 };
