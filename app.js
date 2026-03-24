@@ -103,6 +103,10 @@
     return [...remoteApplications, ...localApplications];
   }
 
+  function isCloudSyncEnabled() {
+    return Boolean(db);
+  }
+
   function normalizeTutorList(applications) {
     const seen = new Set();
     return applications.filter((application) => {
@@ -280,6 +284,13 @@
       });
 
       applyFiltersAndRender();
+
+      if (!isCloudSyncEnabled()) {
+        const notice = document.createElement('p');
+        notice.className = 'status-message';
+        notice.textContent = 'Cloud sync is not configured. You are seeing tutor profiles saved on this browser only.';
+        tutorList.prepend(notice);
+      }
     } catch {
       tutorList.innerHTML = '<p class="status-message error">Could not load tutors right now. Please refresh and try again.</p>';
     }
@@ -621,12 +632,20 @@
         message: 'Bot check removed from tutor application flow.'
       };
 
-      const apps = loadJson(STORAGE_KEYS.tutorApps, []);
-      apps.push(application);
-      saveJson(STORAGE_KEYS.tutorApps, apps);
+      if (!isCloudSyncEnabled()) {
+        setStatus(
+          status,
+          'Tutor profile could not be published for all users because cloud sync is not configured. Update firebase-config.js and try again.',
+          'error'
+        );
+        return;
+      }
 
       try {
         await createTutorApplication(application);
+        const apps = loadJson(STORAGE_KEYS.tutorApps, []);
+        apps.push(application);
+        saveJson(STORAGE_KEYS.tutorApps, apps);
         form.reset();
         selectedProofFiles = [];
         renderProofFiles();
