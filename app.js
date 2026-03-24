@@ -702,8 +702,6 @@
     gmailLink.addEventListener('click', function (event) {
       if (gmailLink.getAttribute('href') !== '#') return;
       event.preventDefault();
-      const status = document.getElementById('chatStatus');
-      setStatus(status, 'Tutor email is not available yet.', 'error');
     });
   }
 
