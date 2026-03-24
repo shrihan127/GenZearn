@@ -129,81 +129,6 @@
     return recognizedCredentialPattern.test(value);
   }
 
-  function hasValidIdSubmission(application) {
-    const idNumber = String(application.idNumber || '').trim();
-    const idLink = String(application.idDocumentUrl || '').trim();
-    const idType = String(application.idType || '').trim();
-
-    if (!application.isHumanCheck) return false;
-    if (idType.length < 3 || idNumber.length < 6) return false;
-
-    try {
-      const parsedUrl = new URL(idLink);
-      return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
-    } catch {
-      return false;
-    }
-  }
-
-  function verifyIdWithBot(application) {
-    const idType = String(application.idType || '').trim();
-    const idNumber = String(application.idNumber || '').trim().toUpperCase();
-    const idDocumentUrl = String(application.idDocumentUrl || '').trim();
-
-    const idPatterns = {
-      Passport: /^[A-Z0-9]{6,12}$/,
-      'National ID': /^[A-Z0-9\-]{6,18}$/,
-      'Driver License': /^[A-Z0-9\-]{6,16}$/
-    };
-
-    const hasValidPattern = idPatterns[idType] ? idPatterns[idType].test(idNumber) : false;
-    const hasRepeatedChars = /(.)\1{5,}/.test(idNumber);
-
-    let hasSuspiciousUrl = true;
-    try {
-      const parsedUrl = new URL(idDocumentUrl);
-      const host = parsedUrl.hostname.toLowerCase();
-      const hostLabels = host.split('.').filter(Boolean);
-
-      const suspiciousHostLabels = new Set(['test', 'temp', 'fake', 'dummy', 'invalid', 'localhost']);
-      const suspiciousHostnames = new Set(['example.com', 'example.org', 'test.com', 'localhost']);
-      const hasSuspiciousHostLabel = hostLabels.some((label) => suspiciousHostLabels.has(label));
-      const hasSuspiciousHostname = suspiciousHostnames.has(host);
-
-      const suspiciousPathWordPattern = /(^|[\W_])(fake|dummy|placeholder|sample)([\W_]|$)/i;
-      const hasSuspiciousPathWord = suspiciousPathWordPattern.test(parsedUrl.pathname);
-
-      hasSuspiciousUrl = !['http:', 'https:'].includes(parsedUrl.protocol)
-        || hasSuspiciousHostLabel
-        || hasSuspiciousHostname
-        || hasSuspiciousPathWord;
-    } catch {
-      hasSuspiciousUrl = true;
-    }
-
-    if (!idType) {
-      return {
-        status: 'rejected',
-        reason: 'ID type is required for verification.',
-        checkedAt: new Date().toISOString()
-      };
-    }
-
-    if (!hasValidPattern || hasSuspiciousUrl || hasRepeatedChars) {
-      return {
-        status: 'rejected',
-        reason: 'ID bot could not confirm this ID. Please re-submit with a legitimate ID number and document link.',
-        checkedAt: new Date().toISOString()
-      };
-    }
-
-    return {
-      status: 'approved',
-      reason: 'ID bot verified this submission as valid.',
-      checkedAt: new Date().toISOString()
-    };
-  }
-
   function getAvailabilityLabel(providedAvailability) {
     const availability = String(providedAvailability || '').trim().toLowerCase();
 
@@ -681,18 +606,6 @@
 
       if (!hasValidQualifications(application.qualifications)) {
         setStatus(status, 'Please enter valid qualifications (degree, certification, or teaching license).', 'error');
-        return;
-      }
-
-      if (!hasValidIdSubmission(application)) {
-        setStatus(status, 'Please complete the ID verification box and bot check with valid details.', 'error');
-        return;
-      }
-
-      const idVerification = verifyIdWithBot(application);
-      application.idVerification = idVerification;
-      if (idVerification.status !== 'approved') {
-        setStatus(status, idVerification.reason, 'error');
         return;
       }
 
