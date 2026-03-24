@@ -610,6 +610,16 @@
       }
 
       application.qualificationsVerified = true;
+      application.idVerificationCompleted = true;
+      application.botCheckPassed = true;
+      application.idVerification = {
+        status: 'not-required',
+        message: 'ID verification step removed from tutor application flow.'
+      };
+      application.botCheck = {
+        status: 'not-required',
+        message: 'Bot check removed from tutor application flow.'
+      };
 
       const apps = loadJson(STORAGE_KEYS.tutorApps, []);
       apps.push(application);
@@ -621,8 +631,11 @@
         selectedProofFiles = [];
         renderProofFiles();
         setStatus(status, 'Application submitted. Qualification checks approved your profile.', 'success');
-      } catch {
-        setStatus(status, 'Could not submit application right now. Please try again.', 'error');
+      } catch (error) {
+        const fallbackMessage = 'Could not submit application right now. Please try again.';
+        const details = error && typeof error.message === 'string' ? error.message : '';
+        const statusMessage = details ? `${fallbackMessage} (${details})` : fallbackMessage;
+        setStatus(status, statusMessage, 'error');
       }
     });
   }
