@@ -434,6 +434,21 @@ textarea {
   gap: 10px;
 }
 
+#chatModal .modal-content p {
+  margin-top: 4px;
+  margin-bottom: 14px;
+}
+
+#chatGmailLink {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin-top: 8px;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
 .payment-summary {
   text-align: left;
   background: rgba(0, 0, 0, 0.2);
