@@ -212,24 +212,17 @@
         const rate = Number(tutor.hourlyRate);
         const subject = String(tutor.subjects);
         const fullName = String(tutor.fullName);
-        const qualifications = String(tutor.qualifications);
         const rating = Number(tutor.rating).toFixed(1);
         const availability = getAvailabilityText(tutor.availability);
         const experience = tutor.experience ? `<p><strong>Experience:</strong> ${tutor.experience}</p>` : '';
-        const verificationLabel = tutor.verification
-          ? `<p class="verification-pill ${tutor.verification.status}">${tutor.verification.message}</p>`
-          : '<p class="verification-pill pending">Qualification review pending</p>';
         return `
           <div class="tutor-card">
-            <img src="https://via.placeholder.com/120" alt="Tutor ${fullName}">
             <h3>${fullName}</h3>
             <p><strong>Subject:</strong> ${subject}</p>
-            <p><strong>Qualifications:</strong> ${qualifications}</p>
             <p><strong>Rate:</strong> $${rate} / hour</p>
             <p><strong>Rating:</strong> ⭐ ${rating}</p>
             <p><strong>Availability:</strong> ${availability}</p>
             ${experience}
-            ${verificationLabel}
             <div class="tutor-card-actions">
               <button class="btn primary" type="button" data-tutor-index="${index}">Book Session</button>
               <button class="btn secondary" type="button" data-chat-tutor-index="${index}">Chat with Tutor</button>
