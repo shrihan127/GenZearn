@@ -181,6 +181,17 @@ body {
   margin: 0 auto;
 }
 
+.form-legal-note {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  opacity: 0.9;
+  margin-top: 4px;
+}
+
+.form-legal-note a {
+  color: #ffd700;
+}
+
 .form-section input,
 .form-section textarea,
 .form-section select,
