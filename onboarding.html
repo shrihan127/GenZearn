@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Onboarding | GenZearn</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="navbar">
+      <a href="index.html" class="logo">
+        <img src="logo.png" alt="GenZearn Logo" class="site-logo">
+        <span class="site-name">GenZearn</span>
+      </a>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="find-tutors.html">Find Tutors</a>
+        <a href="teach-on-genzearn.html">Teach on GenZearn</a>
+        <a href="faq.html">FAQ</a>
+        <a href="contact.html">Contact</a>
+        <a href="signup.html" class="nav-cta">Get Started Free</a>
+        <a href="login.html">Login</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="form-section onboarding-section">
+    <h2>Welcome! Complete your learning launch plan</h2>
+    <p>Finish these steps to earn your <strong>Ready to Learn</strong> badge and unlock a smoother first booking.</p>
+
+    <div class="progress-shell" aria-live="polite">
+      <div class="progress-meta">
+        <span id="progressText">0/4 steps complete</span>
+        <span id="progressPercent">0%</span>
+      </div>
+      <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progressTrack">
+        <span id="progressBar"></span>
+      </div>
+    </div>
+
+    <form id="onboardingForm" class="onboarding-form">
+      <label class="checkbox-row"><input type="checkbox" name="profile" /> <span>Complete your profile details</span></label>
+      <label class="checkbox-row"><input type="checkbox" name="goals" /> <span>Set your first learning goal</span></label>
+      <label class="checkbox-row"><input type="checkbox" name="shortlist" /> <span>Shortlist at least 2 tutors</span></label>
+      <label class="checkbox-row"><input type="checkbox" name="book" /> <span>Send your first session request</span></label>
+    </form>
+
+    <div class="followup-card">
+      <h3>Email Follow-ups</h3>
+      <p id="followupSummary">We'll send simple reminders to help you finish setup.</p>
+      <ul id="followupList"></ul>
+    </div>
+
+    <div class="cta-row onboarding-actions">
+      <a href="find-tutors.html" class="cta">Continue to Tutors</a>
+      <a href="index.html" class="cta cta-outline">Back Home</a>
+    </div>
+    <p id="onboardingStatus" class="status-message" aria-live="polite"></p>
+  </section>
+
+  <footer>
+    <p>© 2025 GenZearn. All rights reserved.</p>
+    <p class="footer-links"><a href="terms-and-conditions.html">Terms &amp; Conditions</a> · <a href="privacy-policy.html">Privacy Policy</a></p>
+  </footer>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="app.js" defer></script>
+</body>
+</html>

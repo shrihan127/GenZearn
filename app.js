@@ -4,7 +4,9 @@
     currentUser: 'genzearn_current_user',
     tutorApps: 'genzearn_tutor_applications',
     sessionRequests: 'genzearn_session_requests',
-    chatMessages: 'genzearn_chat_messages'
+    chatMessages: 'genzearn_chat_messages',
+    onboardingPlans: 'genzearn_onboarding_plans',
+    onboardingFollowups: 'genzearn_onboarding_followups'
   };
 
   const RESET_CODE_EXPIRY_MS = 10 * 60 * 1000;
@@ -376,6 +378,102 @@
     return String(Math.floor(100000 + Math.random() * 900000));
   }
 
+  function initializeOnboardingForUser(user) {
+    if (!user || !user.email) return;
+
+    const plans = loadJson(STORAGE_KEYS.onboardingPlans, {});
+    if (!plans[user.email]) {
+      plans[user.email] = {
+        profile: false,
+        goals: false,
+        shortlist: false,
+        book: false,
+        updatedAt: new Date().toISOString()
+      };
+      saveJson(STORAGE_KEYS.onboardingPlans, plans);
+    }
+
+    if (user.followUpConsent) {
+      const followups = loadJson(STORAGE_KEYS.onboardingFollowups, {});
+      followups[user.email] = [
+        { dayOffset: 0, subject: 'Welcome to GenZearn', purpose: 'Kickoff checklist and your first goal setup.' },
+        { dayOffset: 2, subject: 'Need help choosing a tutor?', purpose: 'Recommended tutors based on your subject and level.' },
+        { dayOffset: 5, subject: 'Finish your first booking', purpose: 'Reminder to send your first session request.' }
+      ].map((item) => ({
+        ...item,
+        scheduledFor: new Date(Date.now() + item.dayOffset * 24 * 60 * 60 * 1000).toISOString()
+      }));
+      saveJson(STORAGE_KEYS.onboardingFollowups, followups);
+    }
+  }
+
+  function initOnboarding() {
+    const form = document.getElementById('onboardingForm');
+    if (!form) return;
+
+    const currentUser = getCurrentUser();
+    const status = document.getElementById('onboardingStatus');
+    const progressText = document.getElementById('progressText');
+    const progressPercent = document.getElementById('progressPercent');
+    const progressBar = document.getElementById('progressBar');
+    const progressTrack = document.getElementById('progressTrack');
+    const followupSummary = document.getElementById('followupSummary');
+    const followupList = document.getElementById('followupList');
+
+    if (!currentUser || !currentUser.email) {
+      setStatus(status, 'Please log in or create an account first.', 'error');
+      return;
+    }
+
+    const plans = loadJson(STORAGE_KEYS.onboardingPlans, {});
+    const followups = loadJson(STORAGE_KEYS.onboardingFollowups, {});
+    const defaultPlan = { profile: false, goals: false, shortlist: false, book: false, updatedAt: new Date().toISOString() };
+    const userPlan = { ...defaultPlan, ...(plans[currentUser.email] || {}) };
+
+    Array.from(form.querySelectorAll("input[type='checkbox']")).forEach((input) => {
+      input.checked = Boolean(userPlan[input.name]);
+      input.addEventListener('change', function () {
+        userPlan[input.name] = input.checked;
+        userPlan.updatedAt = new Date().toISOString();
+        plans[currentUser.email] = userPlan;
+        saveJson(STORAGE_KEYS.onboardingPlans, plans);
+        renderProgress();
+      });
+    });
+
+    function renderProgress() {
+      const stepKeys = ['profile', 'goals', 'shortlist', 'book'];
+      const done = stepKeys.filter((key) => Boolean(userPlan[key])).length;
+      const percent = Math.round((done / stepKeys.length) * 100);
+
+      if (progressText) progressText.textContent = `${done}/${stepKeys.length} steps complete`;
+      if (progressPercent) progressPercent.textContent = `${percent}%`;
+      if (progressBar) progressBar.style.width = `${percent}%`;
+      if (progressTrack) progressTrack.setAttribute('aria-valuenow', String(percent));
+
+      if (done === stepKeys.length) {
+        setStatus(status, 'Amazing—your onboarding is complete and your Ready to Learn badge is earned!', 'success');
+      } else {
+        setStatus(status, 'Complete each step to unlock your Ready to Learn badge.', '');
+      }
+    }
+
+    const userFollowups = followups[currentUser.email] || [];
+    if (!userFollowups.length) {
+      if (followupSummary) followupSummary.textContent = 'Follow-up emails are not enabled for this account.';
+    } else if (followupList) {
+      followupList.innerHTML = '';
+      userFollowups.forEach((followup) => {
+        const item = document.createElement('li');
+        const date = new Date(followup.scheduledFor).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+        item.textContent = `${date}: ${followup.subject} — ${followup.purpose}`;
+        followupList.appendChild(item);
+      });
+    }
+
+    renderProgress();
+  }
+
   function updateAuthUI() {
     const nav = document.querySelector('.nav-links');
     if (!nav) return;
@@ -415,6 +513,7 @@
       const password = form.elements.password.value;
       const role = form.elements.role.value;
       const primarySubject = form.elements.primarySubject.value.trim();
+      const followUpConsent = Boolean(form.elements.followUpConsent?.checked);
 
       const users = loadJson(STORAGE_KEYS.users, []);
       if (users.some((u) => u.email === email)) {
@@ -436,7 +535,8 @@
           }
         }
 
-        const user = { name, email, password, role, primarySubject, createdAt: new Date().toISOString() };
+        const createdAt = new Date().toISOString();
+        const user = { name, email, password, role, primarySubject, followUpConsent, createdAt };
         users.push(user);
         saveJson(STORAGE_KEYS.users, users);
 
@@ -447,10 +547,11 @@
         }
 
         setCurrentUser({ name: user.name, email: user.email, role: user.role });
+        initializeOnboardingForUser(user);
 
-        setStatus(status, 'Account created successfully! Redirecting to tutors...', 'success');
+        setStatus(status, 'Account created! Redirecting to onboarding...', 'success');
         setTimeout(() => {
-          window.location.href = 'find-tutors.html';
+          window.location.href = 'onboarding.html';
         }, 800);
       } catch {
         setStatus(status, 'Could not create account right now. Please try again.', 'error');
@@ -783,5 +884,6 @@
     initTutorDirectory();
     initSessionRequests();
     initTutorChat();
+    initOnboarding();
   });
 })();

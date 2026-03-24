@@ -840,12 +840,80 @@ footer {
   color: #ffd700;
 }
 
-.trust-list {
-  margin: 10px 0 0 20px;
-  line-height: 1.7;
+.checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 10px;
+  margin: 8px auto;
+  max-width: 620px;
+  text-align: left;
 }
 
-.trust-list a {
-  color: #ffd700;
+.checkbox-row input[type='checkbox'] {
+  margin-top: 4px;
+  transform: scale(1.2);
+}
+
+.onboarding-section {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.progress-shell {
+  width: min(620px, 95%);
+  margin: 22px auto;
+  text-align: left;
+}
+
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
   font-weight: 600;
+}
+
+.progress-track {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  height: 12px;
+  overflow: hidden;
+}
+
+.progress-track span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: #ffd700;
+  transition: width 0.25s ease;
+}
+
+.onboarding-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.followup-card {
+  width: min(620px, 95%);
+  margin: 22px auto;
+  background: #003a92;
+  border-radius: 14px;
+  padding: 18px;
+  text-align: left;
+}
+
+.followup-card h3 {
+  color: #ffd700;
+  margin-bottom: 8px;
+}
+
+.followup-card ul {
+  margin-left: 18px;
+  line-height: 1.6;
+}
+
+.onboarding-actions {
+  margin-top: 16px;
 }
