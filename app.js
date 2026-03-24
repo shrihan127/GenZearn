@@ -327,12 +327,6 @@
 
       applyFiltersAndRender();
 
-      if (!isCloudSyncEnabled()) {
-        const notice = document.createElement('p');
-        notice.className = 'status-message';
-        notice.textContent = 'Cloud sync is not configured. You are seeing tutor profiles saved on this browser only.';
-        tutorList.prepend(notice);
-      }
     } catch {
       tutorList.innerHTML = '<p class="status-message error">Could not load tutors right now. Please refresh and try again.</p>';
     }
