@@ -696,45 +696,15 @@
   }
 
   function initTutorChat() {
-    const chatForm = document.getElementById('chatForm');
-    if (!chatForm) return;
+    const gmailLink = document.getElementById('chatGmailLink');
+    if (!gmailLink) return;
 
-    const status = document.getElementById('chatStatus');
-    const current = getCurrentUser();
-    if (current) {
-      chatForm.elements.studentName.value = current.name;
-      chatForm.elements.studentEmail.value = current.email;
-    }
-
-    window.submitChatMessage = function (event) {
+    gmailLink.addEventListener('click', function (event) {
+      if (gmailLink.getAttribute('href') !== '#') return;
       event.preventDefault();
-      const tutor = document.getElementById('chatTutorName').textContent;
-      const tutorEmail = document.getElementById('chatModal').dataset.tutorEmail || '';
-      const message = {
-        tutor,
-        tutorEmail,
-        studentName: chatForm.elements.studentName.value.trim(),
-        studentEmail: chatForm.elements.studentEmail.value.trim().toLowerCase(),
-        message: chatForm.elements.message.value.trim(),
-        createdAt: new Date().toISOString()
-      };
-
-      if (!message.message) {
-        setStatus(status, 'Please enter a message for the tutor.', 'error');
-        return;
-      }
-
-      const messages = loadJson(STORAGE_KEYS.chatMessages, []);
-      messages.push(message);
-      saveJson(STORAGE_KEYS.chatMessages, messages);
-
-      setStatus(status, `Message sent to ${tutor}! They'll get back to you soon.`, 'success');
-      chatForm.elements.message.value = '';
-
-      setTimeout(() => {
-        if (window.closeChatModal) window.closeChatModal();
-      }, 900);
-    };
+      const status = document.getElementById('chatStatus');
+      setStatus(status, 'Tutor email is not available yet.', 'error');
+    });
   }
 
   document.addEventListener('DOMContentLoaded', function () {
