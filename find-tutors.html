@@ -95,7 +95,6 @@
       <h2>Email <span id="chatTutorName"></span></h2>
       <p>Use the tutor email below to get in touch directly.</p>
       <a id="chatGmailLink" class="btn primary" href="#" target="_blank" rel="noopener noreferrer">Email not available</a>
-      <p id="chatStatus" class="status-message" aria-live="polite"></p>
     </div>
   </div>
 
@@ -131,7 +130,6 @@
       document.getElementById('chatModal').dataset.tutorEmail = tutorEmail || '';
       document.getElementById('chatGmailLink').textContent = email || 'Email not available';
       document.getElementById('chatGmailLink').href = gmailLink;
-      document.getElementById('chatStatus').textContent = email ? '' : 'This tutor has not provided an email yet.';
       document.getElementById('chatModal').style.display = 'flex';
     }
 
