@@ -839,3 +839,13 @@ footer {
 .legal-card a {
   color: #ffd700;
 }
+
+.trust-list {
+  margin: 10px 0 0 20px;
+  line-height: 1.7;
+}
+
+.trust-list a {
+  color: #ffd700;
+  font-weight: 600;
+}
