@@ -48,6 +48,13 @@
     saveJson(STORAGE_KEYS.currentUser, user);
   }
 
+  function buildGmailComposeLink(email) {
+    if (!email) return '';
+    const normalizedEmail = String(email).trim().toLowerCase();
+    if (!normalizedEmail) return '';
+    return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(normalizedEmail)}`;
+  }
+
   function initFirebase() {
     if (!window.firebase || !hasUsableFirebaseConfig(window.firebaseConfig)) return;
 
@@ -252,8 +259,10 @@
     chatButtons.forEach((button) => {
       button.addEventListener('click', function () {
         const tutor = tutors[Number(button.dataset.chatTutorIndex)];
-        if (!tutor || !window.openChatModal) return;
-        window.openChatModal(String(tutor.fullName), String(tutor.email || ''));
+        if (!tutor) return;
+        const gmailComposeLink = buildGmailComposeLink(tutor.email);
+        if (!gmailComposeLink) return;
+        window.open(gmailComposeLink, '_blank', 'noopener,noreferrer');
       });
     });
   }
