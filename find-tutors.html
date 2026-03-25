@@ -80,9 +80,10 @@
         <input id="hoursField" name="hours" type="number" min="1" max="8" value="1" required onchange="updateTotal()" oninput="updateTotal()" />
         <select id="paymentMethodField" name="paymentMethod" required onchange="updateSelectedPaymentLink()">
           <option value="" disabled selected>Payment Method</option>
-          <option>Credit / Debit Card</option>
+          <option>Cash App</option>
+          <option>Zell</option>
+          <option>Venmo</option>
           <option>PayPal</option>
-          <option>Bank Transfer</option>
         </select>
         <div id="selectedPaymentLinkWrapper" class="payment-links-box" hidden>
           <p><strong>Selected payment app link:</strong></p>
