@@ -290,13 +290,11 @@
   async function initTutorDirectory() {
     const tutorList = document.getElementById('tutorList');
     if (!tutorList) return;
+    const isCloudSyncEnabled = Boolean(db);
 
-    if (!db) {
-      tutorList.innerHTML = '<p class="status-message error">Tutor directory cloud sync is not configured. Add Firebase settings in firebase-config.js.</p>';
-      return;
-    }
-
-    tutorList.innerHTML = '<p class="status-message">Loading tutors...</p>';
+    tutorList.innerHTML = isCloudSyncEnabled
+      ? '<p class="status-message">Loading tutors...</p>'
+      : '<p class="status-message">Cloud sync is not configured. Showing tutors saved on this device only.</p>';
 
     try {
       const applications = await getTutorApplications();
@@ -318,18 +316,19 @@
       });
 
       applyFiltersAndRender();
-
-      subscribeTutorApplications(
-        function (remoteApplications) {
-          tutors = normalizeTutorList(remoteApplications)
-            .map(enrichTutor)
-            .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-          applyFiltersAndRender();
-        },
-        function () {
-          tutorList.innerHTML = '<p class="status-message error">Live tutor sync is unavailable right now. Please refresh and try again.</p>';
-        }
-      );
+      if (isCloudSyncEnabled) {
+        subscribeTutorApplications(
+          function (remoteApplications) {
+            tutors = normalizeTutorList(remoteApplications)
+              .map(enrichTutor)
+              .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+            applyFiltersAndRender();
+          },
+          function () {
+            tutorList.innerHTML = '<p class="status-message error">Live tutor sync is unavailable right now. Please refresh and try again.</p>';
+          }
+        );
+      }
     } catch {
       tutorList.innerHTML = '<p class="status-message error">Could not load tutors right now. Please refresh and try again.</p>';
     }
@@ -677,7 +676,7 @@
       if (!db) {
         setStatus(
           status,
-          'Cloud sync is not configured. Add your Firebase config in firebase-config.js so your profile appears for everyone.',
+          'Cloud sync is required to publish your tutor profile to all students. Add Firebase settings in firebase-config.js and try again.',
           'error'
         );
         return;
@@ -685,9 +684,7 @@
 
       try {
         await createTutorApplication(application);
-        const apps = loadJson(STORAGE_KEYS.tutorApps, []);
-        apps.push(application);
-        saveJson(STORAGE_KEYS.tutorApps, apps);
+
         form.reset();
         selectedProofFiles = [];
         renderProofFiles();
