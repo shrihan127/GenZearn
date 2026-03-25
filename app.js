@@ -707,7 +707,7 @@
         form.reset();
         selectedProofFiles = [];
         renderProofFiles();
-        setStatus(status, 'Application submitted. Qualification checks approved your profile.', 'success');
+        setStatus(status, 'Application sent', 'success');
       } catch {
         setStatus(status, 'Could not submit application right now. Please try again.', 'error');
       }
