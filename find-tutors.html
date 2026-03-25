@@ -25,232 +25,42 @@
     </div>
   </header>
 
-  <section class="hero compact-hero">
-    <h2>Book a Tutor by Subject</h2>
-    <p>Pick a tutor, request a lesson, and pay securely with clear upfront pricing before you confirm.</p>
-  </section>
+  <main class="find-tutors-layout">
+    <section class="hero compact-hero">
+      <h2>Find Tutors</h2>
+      <p>Browse expert tutors by subject, compare rates, and choose the right match for your learning goals.</p>
+    </section>
 
-  <section class="filters" aria-label="Tutor filters">
-    <h3>Filters</h3>
-    <div class="filter-grid">
-      <label>
-        Subject
-        <input id="subjectFilter" type="text" placeholder="" />
-      </label>
-      <label>
-        Max Price / Hour
-        <input id="priceFilter" type="number" min="0" step="1" placeholder="Any" />
-      </label>
-      <label>
-        Minimum Rating
-        <select id="ratingFilter">
-          <option value="0">Any rating</option>
-          <option value="3">3.0+</option>
-          <option value="3.5">3.5+</option>
-          <option value="4">4.0+</option>
-          <option value="4.5">4.5+</option>
-        </select>
-      </label>
-      <label>
-        Availability
-        <select id="availabilityFilter">
-          <option value="any">Any availability</option>
-          <option value="high">High availability</option>
-          <option value="low">Low availability</option>
-        </select>
-      </label>
-    </div>
-  </section>
+    <section id="tutorsContainer" class="tutors-grid" aria-label="Tutor cards">
+      <article class="tutor-card">
+        <p class="tutor-availability">Availability: Weekdays</p>
+        <h3 class="tutor-name">Ava Thompson</h3>
+        <p class="tutor-subjects">Subjects: Algebra, Geometry, SAT Math</p>
+        <p class="tutor-bio">Patient tutor focused on helping students build confidence through step-by-step problem solving.</p>
+        <p class="tutor-rate">$35/hour</p>
+      </article>
 
-  <section class="tutors" id="tutorList" aria-live="polite"></section>
+      <article class="tutor-card">
+        <p class="tutor-availability">Availability: Evenings</p>
+        <h3 class="tutor-name">Noah Martinez</h3>
+        <p class="tutor-subjects">Subjects: Biology, Chemistry, AP Science</p>
+        <p class="tutor-bio">Hands-on mentor who simplifies complex science topics with real-world examples.</p>
+        <p class="tutor-rate">$42/hour</p>
+      </article>
 
-  <div id="modal" class="modal">
-    <div class="modal-content">
-      <span class="close" onclick="closeModal()">&times;</span>
-      <h2>Book with <span id="tutorName"></span></h2>
-      <div id="tutorPaymentLinksWrapper" class="payment-links-box" hidden>
-        <p><strong>Tutor payment links:</strong></p>
-        <ul id="tutorPaymentLinks"></ul>
-      </div>
-      <form id="sessionRequestForm" onsubmit="submitRequest(event)">
-        <input type="text" name="name" placeholder="Your Name" required />
-        <input type="email" name="email" placeholder="Your Email" required />
-        <input id="subjectField" name="topic" type="text" placeholder="Subject / Topic" required />
-        <input id="hoursField" name="hours" type="number" min="1" max="8" value="1" required onchange="updateTotal()" oninput="updateTotal()" />
-        <select id="paymentMethodField" name="paymentMethod" required onchange="updateSelectedPaymentLink()">
-          <option value="" disabled selected>Payment Method</option>
-          <option>Cash App</option>
-          <option>Zell</option>
-          <option>Venmo</option>
-          <option>PayPal</option>
-        </select>
-        <div id="selectedPaymentLinkWrapper" class="payment-links-box" hidden>
-          <p><strong>Selected payment app link:</strong></p>
-          <p id="selectedPaymentLink"></p>
-        </div>
-        <div class="payment-summary">
-          <p><strong>Estimated total:</strong> <span id="totalCharge">$0.00</span></p>
-        </div>
-        <button type="submit" class="btn primary">Close</button>
-      </form>
-      <p id="sessionRequestStatus" class="status-message" aria-live="polite"></p>
-    </div>
-  </div>
-
-  <div id="chatModal" class="modal">
-    <div class="modal-content">
-      <span class="close" onclick="closeChatModal()">&times;</span>
-      <h2>Chat with <span id="chatTutorName"></span></h2>
-      <form id="chatForm" onsubmit="submitChatMessage(event)">
-        <input id="chatStudentName" type="text" name="studentName" placeholder="Your Name" required />
-        <input id="chatStudentEmail" type="email" name="studentEmail" placeholder="Your Email" required />
-        <textarea id="chatMessage" name="message" placeholder="Ask your question or tell the tutor what you need help with..." required></textarea>
-        <button type="submit" class="btn primary">Send Message</button>
-      </form>
-      <p id="chatStatus" class="status-message" aria-live="polite"></p>
-    </div>
-  </div>
+      <article class="tutor-card">
+        <p class="tutor-availability">Availability: Weekends</p>
+        <h3 class="tutor-name">Liam Chen</h3>
+        <p class="tutor-subjects">Subjects: Writing, Literature, Essay Coaching</p>
+        <p class="tutor-bio">Supports students with clear writing strategies, structure, and personalized feedback.</p>
+        <p class="tutor-rate">$30/hour</p>
+      </article>
+    </section>
+  </main>
 
   <footer>
     <p>© 2025 GenZearn. All rights reserved.</p>
     <p class="footer-links">By using this page, you agree to our <a href="terms-and-conditions.html">Terms &amp; Conditions</a>, <a href="privacy-policy.html">Privacy Policy</a>, and <a href="refund-policy.html">Refund Policy</a>.</p>
   </footer>
-
-  <script>
-    let currentRate = 0;
-    let currentTutorPaymentLinksByMethod = {};
-
-    function openModal(tutor, rate, subject, paymentLinks) {
-      document.getElementById('tutorName').textContent = tutor;
-      document.getElementById('subjectField').value = subject;
-      document.getElementById('hoursField').value = 1;
-      const paymentMethodField = document.getElementById('paymentMethodField');
-      if (paymentMethodField) {
-        paymentMethodField.selectedIndex = 0;
-      }
-      renderTutorPaymentLinks(paymentLinks);
-      updateSelectedPaymentLink();
-      currentRate = rate;
-      updateTotal();
-      document.getElementById('modal').style.display = 'flex';
-    }
-
-    function renderTutorPaymentLinks(paymentLinks) {
-      const wrapper = document.getElementById('tutorPaymentLinksWrapper');
-      const list = document.getElementById('tutorPaymentLinks');
-      const entries = String(paymentLinks || '')
-        .split('\n')
-        .map((entry) => entry.trim())
-        .filter(Boolean);
-
-      currentTutorPaymentLinksByMethod = {};
-      list.innerHTML = '';
-      if (!entries.length) {
-        wrapper.hidden = true;
-        return;
-      }
-
-      entries.forEach((entry) => {
-        const item = document.createElement('li');
-        const methodMatch = entry.match(/^([^:|-]+)\s*[:|-]\s*(https?:\/\/\S+)$/i);
-        if (methodMatch) {
-          const method = methodMatch[1].trim().toLowerCase();
-          const url = methodMatch[2].trim();
-          currentTutorPaymentLinksByMethod[method] = url;
-          item.textContent = `${methodMatch[1].trim()}: `;
-
-          const link = document.createElement('a');
-          link.href = url;
-          link.target = '_blank';
-          link.rel = 'noopener noreferrer';
-          link.textContent = url;
-          item.appendChild(link);
-        } else if (/^https?:\/\/\S+$/i.test(entry)) {
-          const link = document.createElement('a');
-          link.href = entry;
-          link.target = '_blank';
-          link.rel = 'noopener noreferrer';
-          link.textContent = entry;
-          item.appendChild(link);
-        } else {
-          item.textContent = entry;
-        }
-        list.appendChild(item);
-      });
-
-      wrapper.hidden = false;
-    }
-
-    function updateSelectedPaymentLink() {
-      const paymentMethodField = document.getElementById('paymentMethodField');
-      const selectedPaymentLinkWrapper = document.getElementById('selectedPaymentLinkWrapper');
-      const selectedPaymentLink = document.getElementById('selectedPaymentLink');
-      if (!paymentMethodField || !selectedPaymentLinkWrapper || !selectedPaymentLink) return;
-
-      const selectedMethod = String(paymentMethodField.value || '').trim().toLowerCase();
-      const matchingUrl = currentTutorPaymentLinksByMethod[selectedMethod];
-
-      if (!matchingUrl) {
-        selectedPaymentLinkWrapper.hidden = true;
-        selectedPaymentLink.textContent = '';
-        return;
-      }
-
-      const link = document.createElement('a');
-      link.href = matchingUrl;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      link.textContent = matchingUrl;
-
-      selectedPaymentLink.innerHTML = '';
-      selectedPaymentLink.appendChild(link);
-      selectedPaymentLinkWrapper.hidden = false;
-    }
-
-    function closeModal() {
-      document.getElementById('modal').style.display = 'none';
-    }
-
-    function openChatModal(tutorName, tutorEmail) {
-      document.getElementById('chatTutorName').textContent = tutorName;
-      document.getElementById('chatModal').dataset.tutorEmail = tutorEmail || '';
-      document.getElementById('chatStatus').textContent = '';
-      document.getElementById('chatMessage').value = '';
-      document.getElementById('chatModal').style.display = 'flex';
-    }
-
-    function closeChatModal() {
-      document.getElementById('chatModal').style.display = 'none';
-    }
-
-    function submitChatMessage(event) {
-      event.preventDefault();
-    }
-
-    function updateTotal() {
-      const hours = Number(document.getElementById('hoursField').value || 1);
-      const total = currentRate * hours;
-      document.getElementById('totalCharge').textContent = `$${total.toFixed(2)}`;
-    }
-
-    function submitRequest(event) {
-      event.preventDefault();
-    }
-
-    window.onclick = function(event) {
-      const modal = document.getElementById('modal');
-      const chatModal = document.getElementById('chatModal');
-      if (event.target === modal) {
-        modal.style.display = 'none';
-      }
-      if (event.target === chatModal) {
-        chatModal.style.display = 'none';
-      }
-    };
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
-  <script src="firebase-config.js"></script>
-  <script src="app.js" defer></script>
 </body>
 </html>
