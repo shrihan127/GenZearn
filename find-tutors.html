@@ -69,6 +69,10 @@
     <div class="modal-content">
       <span class="close" onclick="closeModal()">&times;</span>
       <h2>Book with <span id="tutorName"></span></h2>
+      <div id="tutorPaymentLinksWrapper" class="payment-links-box" hidden>
+        <p><strong>Tutor payment links:</strong></p>
+        <ul id="tutorPaymentLinks"></ul>
+      </div>
       <form id="sessionRequestForm" onsubmit="submitRequest(event)">
         <input type="text" name="name" placeholder="Your Name" required />
         <input type="email" name="email" placeholder="Your Email" required />
@@ -112,13 +116,46 @@
   <script>
     let currentRate = 0;
 
-    function openModal(tutor, rate, subject) {
+    function openModal(tutor, rate, subject, paymentLinks) {
       document.getElementById('tutorName').textContent = tutor;
       document.getElementById('subjectField').value = subject;
       document.getElementById('hoursField').value = 1;
+      renderTutorPaymentLinks(paymentLinks);
       currentRate = rate;
       updateTotal();
       document.getElementById('modal').style.display = 'flex';
+    }
+
+    function renderTutorPaymentLinks(paymentLinks) {
+      const wrapper = document.getElementById('tutorPaymentLinksWrapper');
+      const list = document.getElementById('tutorPaymentLinks');
+      const entries = String(paymentLinks || '')
+        .split('\n')
+        .map((entry) => entry.trim())
+        .filter(Boolean);
+
+      list.innerHTML = '';
+      if (!entries.length) {
+        wrapper.hidden = true;
+        return;
+      }
+
+      entries.forEach((entry) => {
+        const item = document.createElement('li');
+        if (/^https?:\/\/\S+$/i.test(entry)) {
+          const link = document.createElement('a');
+          link.href = entry;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = entry;
+          item.appendChild(link);
+        } else {
+          item.textContent = entry;
+        }
+        list.appendChild(item);
+      });
+
+      wrapper.hidden = false;
     }
 
     function closeModal() {

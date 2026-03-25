@@ -435,6 +435,32 @@ textarea {
   margin-bottom: 4px;
 }
 
+.payment-links-box {
+  text-align: left;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.payment-links-box p {
+  margin-bottom: 8px;
+}
+
+.payment-links-box ul {
+  list-style: disc;
+  padding-left: 20px;
+}
+
+.payment-links-box li {
+  margin-bottom: 6px;
+  word-break: break-all;
+}
+
+.payment-links-box a {
+  color: #ffd700;
+}
+
 .close {
   position: absolute;
   top: 15px;
