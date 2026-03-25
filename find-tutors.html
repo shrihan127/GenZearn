@@ -19,8 +19,8 @@
         <a href="teach-on-genzearn.html">Teach on GenZearn</a>
         <a href="faq.html">FAQ</a>
         <a href="contact.html">Contact</a>
+        <a href="signup.html">Sign Up</a>
         <a href="login.html">Login</a>
-        <a href="signup.html" class="nav-cta">Get Started Free</a>
       </nav>
     </div>
   </header>
@@ -92,15 +92,20 @@
   <div id="chatModal" class="modal">
     <div class="modal-content">
       <span class="close" onclick="closeChatModal()">&times;</span>
-      <h2>Email <span id="chatTutorName"></span></h2>
-      <p>Use the tutor email below to get in touch directly.</p>
-      <a id="chatGmailLink" class="btn primary" href="#" target="_blank" rel="noopener noreferrer">Email not available</a>
+      <h2>Chat with <span id="chatTutorName"></span></h2>
+      <form id="chatForm" onsubmit="submitChatMessage(event)">
+        <input id="chatStudentName" type="text" name="studentName" placeholder="Your Name" required />
+        <input id="chatStudentEmail" type="email" name="studentEmail" placeholder="Your Email" required />
+        <textarea id="chatMessage" name="message" placeholder="Ask your question or tell the tutor what you need help with..." required></textarea>
+        <button type="submit" class="btn primary">Send Message</button>
+      </form>
+      <p id="chatStatus" class="status-message" aria-live="polite"></p>
     </div>
   </div>
 
   <footer>
     <p>© 2025 GenZearn. All rights reserved.</p>
-    <p class="footer-links"><a href="terms-and-conditions.html">Terms &amp; Conditions</a> · <a href="privacy-policy.html">Privacy Policy</a> · <a href="refund-policy.html">Refund Policy</a> · <a href="contact.html">Contact</a></p>
+    <p class="footer-links"><a href="terms-and-conditions.html">Terms &amp; Conditions</a></p>
   </footer>
 
   <script>
@@ -120,21 +125,19 @@
     }
 
     function openChatModal(tutorName, tutorEmail) {
-      const email = (tutorEmail || '').trim().toLowerCase();
-      const subject = encodeURIComponent('Tutoring inquiry from GenZearn');
-      const gmailLink = email
-        ? `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${subject}`
-        : '#';
-
       document.getElementById('chatTutorName').textContent = tutorName;
       document.getElementById('chatModal').dataset.tutorEmail = tutorEmail || '';
-      document.getElementById('chatGmailLink').textContent = email || 'Email not available';
-      document.getElementById('chatGmailLink').href = gmailLink;
+      document.getElementById('chatStatus').textContent = '';
+      document.getElementById('chatMessage').value = '';
       document.getElementById('chatModal').style.display = 'flex';
     }
 
     function closeChatModal() {
       document.getElementById('chatModal').style.display = 'none';
+    }
+
+    function submitChatMessage(event) {
+      event.preventDefault();
     }
 
     function updateTotal() {

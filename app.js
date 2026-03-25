@@ -4,15 +4,12 @@
     currentUser: 'genzearn_current_user',
     tutorApps: 'genzearn_tutor_applications',
     sessionRequests: 'genzearn_session_requests',
-    chatMessages: 'genzearn_chat_messages',
-    onboardingPlans: 'genzearn_onboarding_plans',
-    onboardingFollowups: 'genzearn_onboarding_followups'
+    chatMessages: 'genzearn_chat_messages'
   };
 
   const RESET_CODE_EXPIRY_MS = 10 * 60 * 1000;
 
   let db = null;
-  let cloudDatabaseURL = '';
   let activeResetCode = null;
 
   function hasUsableFirebaseConfig(config) {
@@ -23,19 +20,6 @@
       const value = config[key];
       return typeof value === 'string' && value.trim() !== '' && !value.includes('YOUR_');
     });
-  }
-
-  function hasUsableCloudDatabaseURL(config) {
-    if (!config || typeof config !== 'object') return false;
-    const rawUrl = typeof config.databaseURL === 'string' ? config.databaseURL.trim() : '';
-    if (!rawUrl || rawUrl.includes('YOUR_PROJECT_ID')) return false;
-
-    try {
-      const url = new URL(rawUrl);
-      return url.protocol === 'https:' && Boolean(url.hostname);
-    } catch {
-      return false;
-    }
   }
 
   function loadJson(key, fallback) {
@@ -65,37 +49,12 @@
   }
 
   function initFirebase() {
-    if (!hasUsableCloudDatabaseURL(window.firebaseConfig)) return;
-    cloudDatabaseURL = window.firebaseConfig.databaseURL.replace(/\/+$/, '');
-
     if (!window.firebase || !hasUsableFirebaseConfig(window.firebaseConfig)) return;
 
     if (!window.firebase.apps.length) {
       window.firebase.initializeApp(window.firebaseConfig);
     }
     db = window.firebase.database();
-  }
-
-  async function cloudPost(path, payload) {
-    if (!cloudDatabaseURL) return null;
-    const response = await fetch(`${cloudDatabaseURL}/${path}.json`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    if (!response.ok) {
-      throw new Error(`Cloud write failed (${response.status})`);
-    }
-    return response.json();
-  }
-
-  async function cloudRead(path) {
-    if (!cloudDatabaseURL) return null;
-    const response = await fetch(`${cloudDatabaseURL}/${path}.json`, { method: 'GET' });
-    if (!response.ok) {
-      throw new Error(`Cloud read failed (${response.status})`);
-    }
-    return response.json();
   }
 
   async function findUserByEmail(email) {
@@ -122,65 +81,26 @@
   }
 
   async function createTutorApplication(application) {
-    if (db) {
-      await db.ref('tutorApplications').push(application);
-      return;
-    }
-
-    if (!cloudDatabaseURL) {
-      throw new Error('Cloud sync is not configured.');
-    }
-
-    await cloudPost('tutorApplications', application);
+    if (!db) return;
+    await db.ref('tutorApplications').push(application);
   }
 
 
   async function createSessionRequest(request) {
-    if (db) {
-      await db.ref('sessionRequests').push(request);
-      return;
-    }
-
-    await cloudPost('sessionRequests', request);
+    if (!db) return;
+    await db.ref('sessionRequests').push(request);
   }
 
   async function getTutorApplications() {
     const localApplications = loadJson(STORAGE_KEYS.tutorApps, []);
-    if (!db && !cloudDatabaseURL) return localApplications;
+    if (!db) return localApplications;
 
-    await syncLocalTutorApplications(localApplications);
-
-    const remoteData = db
-      ? (await db.ref('tutorApplications').once('value')).val()
-      : await cloudRead('tutorApplications');
-    const remoteApplications = Object.entries(remoteData || {}).map(([key, value]) => ({
+    const snapshot = await db.ref('tutorApplications').once('value');
+    const remoteApplications = Object.entries(snapshot.val() || {}).map(([key, value]) => ({
       ...value,
       _remoteKey: key
     }));
     return [...remoteApplications, ...localApplications];
-  }
-
-  function isCloudSyncEnabled() {
-    return Boolean(db || cloudDatabaseURL);
-  }
-
-  async function syncLocalTutorApplications(localApplications) {
-    if (!localApplications.length || !isCloudSyncEnabled()) return;
-
-    const remoteData = db
-      ? (await db.ref('tutorApplications').once('value')).val()
-      : await cloudRead('tutorApplications');
-    const remoteApplications = Object.values(remoteData || {});
-    const remoteKeys = new Set(
-      remoteApplications.map((application) => `${String(application.email || '').trim().toLowerCase()}|${application.createdAt || ''}`)
-    );
-
-    for (const application of localApplications) {
-      const dedupeKey = `${String(application.email || '').trim().toLowerCase()}|${application.createdAt || ''}`;
-      if (remoteKeys.has(dedupeKey)) continue;
-      await createTutorApplication(application);
-      remoteKeys.add(dedupeKey);
-    }
   }
 
   function normalizeTutorList(applications) {
@@ -207,6 +127,81 @@
 
     const recognizedCredentialPattern = /\b(degree|b\.?a\.?|b\.?s\.?|m\.?a\.?|m\.?s\.?|phd|doctorate|certified|certification|license|licensed|teaching credential|pgce)\b/i;
     return recognizedCredentialPattern.test(value);
+  }
+
+  function hasValidIdSubmission(application) {
+    const idNumber = String(application.idNumber || '').trim();
+    const idLink = String(application.idDocumentUrl || '').trim();
+    const idType = String(application.idType || '').trim();
+
+    if (!application.isHumanCheck) return false;
+    if (idType.length < 3 || idNumber.length < 6) return false;
+
+    try {
+      const parsedUrl = new URL(idLink);
+      return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
+
+  function verifyIdWithBot(application) {
+    const idType = String(application.idType || '').trim();
+    const idNumber = String(application.idNumber || '').trim().toUpperCase();
+    const idDocumentUrl = String(application.idDocumentUrl || '').trim();
+
+    const idPatterns = {
+      Passport: /^[A-Z0-9]{6,12}$/,
+      'National ID': /^[A-Z0-9\-]{6,18}$/,
+      'Driver License': /^[A-Z0-9\-]{6,16}$/
+    };
+
+    const hasValidPattern = idPatterns[idType] ? idPatterns[idType].test(idNumber) : false;
+    const hasRepeatedChars = /(.)\1{5,}/.test(idNumber);
+
+    let hasSuspiciousUrl = true;
+    try {
+      const parsedUrl = new URL(idDocumentUrl);
+      const host = parsedUrl.hostname.toLowerCase();
+      const hostLabels = host.split('.').filter(Boolean);
+
+      const suspiciousHostLabels = new Set(['test', 'temp', 'fake', 'dummy', 'invalid', 'localhost']);
+      const suspiciousHostnames = new Set(['example.com', 'example.org', 'test.com', 'localhost']);
+      const hasSuspiciousHostLabel = hostLabels.some((label) => suspiciousHostLabels.has(label));
+      const hasSuspiciousHostname = suspiciousHostnames.has(host);
+
+      const suspiciousPathWordPattern = /(^|[\W_])(fake|dummy|placeholder|sample)([\W_]|$)/i;
+      const hasSuspiciousPathWord = suspiciousPathWordPattern.test(parsedUrl.pathname);
+
+      hasSuspiciousUrl = !['http:', 'https:'].includes(parsedUrl.protocol)
+        || hasSuspiciousHostLabel
+        || hasSuspiciousHostname
+        || hasSuspiciousPathWord;
+    } catch {
+      hasSuspiciousUrl = true;
+    }
+
+    if (!idType) {
+      return {
+        status: 'rejected',
+        reason: 'ID type is required for verification.',
+        checkedAt: new Date().toISOString()
+      };
+    }
+
+    if (!hasValidPattern || hasSuspiciousUrl || hasRepeatedChars) {
+      return {
+        status: 'rejected',
+        reason: 'ID bot could not confirm this ID. Please re-submit with a legitimate ID number and document link.',
+        checkedAt: new Date().toISOString()
+      };
+    }
+
+    return {
+      status: 'approved',
+      reason: 'ID bot verified this submission as valid.',
+      checkedAt: new Date().toISOString()
+    };
   }
 
   function getAvailabilityLabel(providedAvailability) {
@@ -288,17 +283,24 @@
         const rate = Number(tutor.hourlyRate);
         const subject = String(tutor.subjects);
         const fullName = String(tutor.fullName);
+        const qualifications = String(tutor.qualifications);
         const rating = Number(tutor.rating).toFixed(1);
         const availability = getAvailabilityText(tutor.availability);
         const experience = tutor.experience ? `<p><strong>Experience:</strong> ${tutor.experience}</p>` : '';
+        const verificationLabel = tutor.verification
+          ? `<p class="verification-pill ${tutor.verification.status}">${tutor.verification.message}</p>`
+          : '<p class="verification-pill pending">Qualification review pending</p>';
         return `
           <div class="tutor-card">
+            <img src="https://via.placeholder.com/120" alt="Tutor ${fullName}">
             <h3>${fullName}</h3>
             <p><strong>Subject:</strong> ${subject}</p>
+            <p><strong>Qualifications:</strong> ${qualifications}</p>
             <p><strong>Rate:</strong> $${rate} / hour</p>
             <p><strong>Rating:</strong> ⭐ ${rating}</p>
             <p><strong>Availability:</strong> ${availability}</p>
             ${experience}
+            ${verificationLabel}
             <div class="tutor-card-actions">
               <button class="btn primary" type="button" data-tutor-index="${index}">Book Session</button>
               <button class="btn secondary" type="button" data-chat-tutor-index="${index}">Chat with Tutor</button>
@@ -353,7 +355,6 @@
       });
 
       applyFiltersAndRender();
-
     } catch {
       tutorList.innerHTML = '<p class="status-message error">Could not load tutors right now. Please refresh and try again.</p>';
     }
@@ -376,102 +377,6 @@
 
   function createVerificationCode() {
     return String(Math.floor(100000 + Math.random() * 900000));
-  }
-
-  function initializeOnboardingForUser(user) {
-    if (!user || !user.email) return;
-
-    const plans = loadJson(STORAGE_KEYS.onboardingPlans, {});
-    if (!plans[user.email]) {
-      plans[user.email] = {
-        profile: false,
-        goals: false,
-        shortlist: false,
-        book: false,
-        updatedAt: new Date().toISOString()
-      };
-      saveJson(STORAGE_KEYS.onboardingPlans, plans);
-    }
-
-    if (user.followUpConsent) {
-      const followups = loadJson(STORAGE_KEYS.onboardingFollowups, {});
-      followups[user.email] = [
-        { dayOffset: 0, subject: 'Welcome to GenZearn', purpose: 'Kickoff checklist and your first goal setup.' },
-        { dayOffset: 2, subject: 'Need help choosing a tutor?', purpose: 'Recommended tutors based on your subject and level.' },
-        { dayOffset: 5, subject: 'Finish your first booking', purpose: 'Reminder to send your first session request.' }
-      ].map((item) => ({
-        ...item,
-        scheduledFor: new Date(Date.now() + item.dayOffset * 24 * 60 * 60 * 1000).toISOString()
-      }));
-      saveJson(STORAGE_KEYS.onboardingFollowups, followups);
-    }
-  }
-
-  function initOnboarding() {
-    const form = document.getElementById('onboardingForm');
-    if (!form) return;
-
-    const currentUser = getCurrentUser();
-    const status = document.getElementById('onboardingStatus');
-    const progressText = document.getElementById('progressText');
-    const progressPercent = document.getElementById('progressPercent');
-    const progressBar = document.getElementById('progressBar');
-    const progressTrack = document.getElementById('progressTrack');
-    const followupSummary = document.getElementById('followupSummary');
-    const followupList = document.getElementById('followupList');
-
-    if (!currentUser || !currentUser.email) {
-      setStatus(status, 'Please log in or create an account first.', 'error');
-      return;
-    }
-
-    const plans = loadJson(STORAGE_KEYS.onboardingPlans, {});
-    const followups = loadJson(STORAGE_KEYS.onboardingFollowups, {});
-    const defaultPlan = { profile: false, goals: false, shortlist: false, book: false, updatedAt: new Date().toISOString() };
-    const userPlan = { ...defaultPlan, ...(plans[currentUser.email] || {}) };
-
-    Array.from(form.querySelectorAll("input[type='checkbox']")).forEach((input) => {
-      input.checked = Boolean(userPlan[input.name]);
-      input.addEventListener('change', function () {
-        userPlan[input.name] = input.checked;
-        userPlan.updatedAt = new Date().toISOString();
-        plans[currentUser.email] = userPlan;
-        saveJson(STORAGE_KEYS.onboardingPlans, plans);
-        renderProgress();
-      });
-    });
-
-    function renderProgress() {
-      const stepKeys = ['profile', 'goals', 'shortlist', 'book'];
-      const done = stepKeys.filter((key) => Boolean(userPlan[key])).length;
-      const percent = Math.round((done / stepKeys.length) * 100);
-
-      if (progressText) progressText.textContent = `${done}/${stepKeys.length} steps complete`;
-      if (progressPercent) progressPercent.textContent = `${percent}%`;
-      if (progressBar) progressBar.style.width = `${percent}%`;
-      if (progressTrack) progressTrack.setAttribute('aria-valuenow', String(percent));
-
-      if (done === stepKeys.length) {
-        setStatus(status, 'Amazing—your onboarding is complete and your Ready to Learn badge is earned!', 'success');
-      } else {
-        setStatus(status, 'Complete each step to unlock your Ready to Learn badge.', '');
-      }
-    }
-
-    const userFollowups = followups[currentUser.email] || [];
-    if (!userFollowups.length) {
-      if (followupSummary) followupSummary.textContent = 'Follow-up emails are not enabled for this account.';
-    } else if (followupList) {
-      followupList.innerHTML = '';
-      userFollowups.forEach((followup) => {
-        const item = document.createElement('li');
-        const date = new Date(followup.scheduledFor).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-        item.textContent = `${date}: ${followup.subject} — ${followup.purpose}`;
-        followupList.appendChild(item);
-      });
-    }
-
-    renderProgress();
   }
 
   function updateAuthUI() {
@@ -504,93 +409,6 @@
 
     const status = document.getElementById('signupStatus');
     const submitButton = form.querySelector('button[type="submit"]');
-    const roleSelect = form.elements.role;
-    const tutorFields = document.getElementById('signupTutorVerificationFields');
-    const proofInput = form.elements.signupQualificationProofFiles;
-    const proofDropzone = document.getElementById('signupQualificationProofDropzone');
-    const proofFileList = document.getElementById('signupQualificationProofFileList');
-    let selectedProofFiles = [];
-
-    function renderProofFiles() {
-      if (!proofFileList) return;
-      proofFileList.innerHTML = '';
-      selectedProofFiles.forEach((file) => {
-        const item = document.createElement('li');
-        item.textContent = `${file.name} (${Math.max(1, Math.round(file.size / 1024))} KB)`;
-        proofFileList.appendChild(item);
-      });
-    }
-
-    function mergeProofFiles(incomingFiles) {
-      const unique = new Map(selectedProofFiles.map((file) => [`${file.name}-${file.size}-${file.lastModified}`, file]));
-      Array.from(incomingFiles).forEach((file) => {
-        const key = `${file.name}-${file.size}-${file.lastModified}`;
-        unique.set(key, file);
-      });
-      selectedProofFiles = Array.from(unique.values()).slice(0, 5);
-      renderProofFiles();
-    }
-
-    function clearTutorProofFiles() {
-      selectedProofFiles = [];
-      renderProofFiles();
-      if (proofInput) proofInput.value = '';
-    }
-
-    function updateTutorFieldsVisibility() {
-      if (!tutorFields) return;
-      const isTutor = roleSelect?.value === 'tutor';
-      tutorFields.classList.toggle('hidden', !isTutor);
-      if (!isTutor) {
-        if (form.elements.qualifications) {
-          form.elements.qualifications.value = '';
-        }
-        clearTutorProofFiles();
-      }
-    }
-
-    if (proofInput) {
-      proofInput.addEventListener('change', function () {
-        mergeProofFiles(proofInput.files || []);
-        proofInput.value = '';
-      });
-    }
-
-    if (proofDropzone && proofInput) {
-      proofDropzone.addEventListener('click', function () {
-        proofInput.click();
-      });
-
-      proofDropzone.addEventListener('keydown', function (event) {
-        if (event.key !== 'Enter' && event.key !== ' ') return;
-        event.preventDefault();
-        proofInput.click();
-      });
-
-      ['dragenter', 'dragover'].forEach((eventName) => {
-        proofDropzone.addEventListener(eventName, function (event) {
-          event.preventDefault();
-          proofDropzone.classList.add('active');
-        });
-      });
-
-      ['dragleave', 'drop'].forEach((eventName) => {
-        proofDropzone.addEventListener(eventName, function (event) {
-          event.preventDefault();
-          proofDropzone.classList.remove('active');
-        });
-      });
-
-      proofDropzone.addEventListener('drop', function (event) {
-        mergeProofFiles(event.dataTransfer?.files || []);
-      });
-    }
-
-    if (roleSelect) {
-      roleSelect.addEventListener('change', updateTutorFieldsVisibility);
-      updateTutorFieldsVisibility();
-    }
-
     form.addEventListener('submit', async function (event) {
       event.preventDefault();
       if (submitButton) submitButton.disabled = true;
@@ -600,44 +418,12 @@
       const password = form.elements.password.value;
       const role = form.elements.role.value;
       const primarySubject = form.elements.primarySubject.value.trim();
-      const followUpConsent = Boolean(form.elements.followUpConsent?.checked);
-      const qualificationText = String(form.elements.qualifications?.value || '').trim();
-      const allowedProofExtensions = /\.(pdf|doc|docx|png|jpe?g)$/i;
-      const credentialFileKeywordPattern = /\b(degree|diploma|certificate|certification|credential|license|licence|transcript|qualification|bachelor|master|phd|doctorate)\b/i;
 
       const users = loadJson(STORAGE_KEYS.users, []);
       if (users.some((u) => u.email === email)) {
         setStatus(status, 'An account with this email already exists. Please log in.', 'error');
         if (submitButton) submitButton.disabled = false;
         return;
-      }
-
-      if (role === 'tutor') {
-        if (!hasValidQualifications(qualificationText)) {
-          setStatus(status, 'Tutor signup rejected: add a valid degree/certification/license in the qualification field.', 'error');
-          if (submitButton) submitButton.disabled = false;
-          return;
-        }
-
-        if (!selectedProofFiles.length) {
-          setStatus(status, 'Tutor signup rejected: upload at least one qualification document.', 'error');
-          if (submitButton) submitButton.disabled = false;
-          return;
-        }
-
-        const hasUnsupportedFiles = selectedProofFiles.some((file) => !allowedProofExtensions.test(file.name || ''));
-        if (hasUnsupportedFiles) {
-          setStatus(status, 'Tutor signup rejected: unsupported file type detected. Upload PDF, DOC/DOCX, PNG, or JPG only.', 'error');
-          if (submitButton) submitButton.disabled = false;
-          return;
-        }
-
-        const hasCredentialLikeFile = selectedProofFiles.some((file) => credentialFileKeywordPattern.test(String(file.name || '')));
-        if (!hasCredentialLikeFile) {
-          setStatus(status, 'Tutor signup rejected by verification bot: file names do not appear to contain a valid degree or qualification proof.', 'error');
-          if (submitButton) submitButton.disabled = false;
-          return;
-        }
       }
 
       try {
@@ -653,24 +439,7 @@
           }
         }
 
-        const createdAt = new Date().toISOString();
-        const user = {
-          name,
-          email,
-          password,
-          role,
-          primarySubject,
-          followUpConsent,
-          createdAt,
-          qualifications: role === 'tutor' ? qualificationText : '',
-          qualificationProofFiles: role === 'tutor'
-            ? selectedProofFiles.map((file) => ({
-              name: file.name,
-              size: file.size,
-              type: file.type || 'application/octet-stream'
-            }))
-            : []
-        };
+        const user = { name, email, password, role, primarySubject, createdAt: new Date().toISOString() };
         users.push(user);
         saveJson(STORAGE_KEYS.users, users);
 
@@ -681,14 +450,10 @@
         }
 
         setCurrentUser({ name: user.name, email: user.email, role: user.role });
-        initializeOnboardingForUser(user);
-        form.reset();
-        clearTutorProofFiles();
-        updateTutorFieldsVisibility();
 
-        setStatus(status, 'Account created! Redirecting to onboarding...', 'success');
+        setStatus(status, 'Account created successfully! Redirecting to tutors...', 'success');
         setTimeout(() => {
-          window.location.href = 'onboarding.html';
+          window.location.href = 'find-tutors.html';
         }, 800);
       } catch {
         setStatus(status, 'Could not create account right now. Please try again.', 'error');
@@ -919,41 +684,32 @@
         return;
       }
 
+      if (!hasValidIdSubmission(application)) {
+        setStatus(status, 'Please complete the ID verification box and bot check with valid details.', 'error');
+        return;
+      }
+
+      const idVerification = verifyIdWithBot(application);
+      application.idVerification = idVerification;
+      if (idVerification.status !== 'approved') {
+        setStatus(status, idVerification.reason, 'error');
+        return;
+      }
+
       application.qualificationsVerified = true;
-      application.idVerificationCompleted = true;
-      application.botCheckPassed = true;
-      application.idVerification = {
-        status: 'not-required',
-        message: 'ID verification step removed from tutor application flow.'
-      };
-      application.botCheck = {
-        status: 'not-required',
-        message: 'Bot check removed from tutor application flow.'
-      };
+
+      const apps = loadJson(STORAGE_KEYS.tutorApps, []);
+      apps.push(application);
+      saveJson(STORAGE_KEYS.tutorApps, apps);
 
       try {
-        const apps = loadJson(STORAGE_KEYS.tutorApps, []);
-        apps.push(application);
-        saveJson(STORAGE_KEYS.tutorApps, apps);
-
-        if (isCloudSyncEnabled()) {
-          await createTutorApplication(application);
-          await syncLocalTutorApplications(apps);
-        }
-
+        await createTutorApplication(application);
         form.reset();
         selectedProofFiles = [];
         renderProofFiles();
-        if (isCloudSyncEnabled()) {
-          setStatus(status, 'Application submitted. Qualification checks approved your profile.', 'success');
-        } else {
-          setStatus(status, 'Application sent', 'success');
-        }
-      } catch (error) {
-        const fallbackMessage = 'Could not submit application right now. Please try again.';
-        const details = error && typeof error.message === 'string' ? error.message : '';
-        const statusMessage = details ? `${fallbackMessage} (${details})` : fallbackMessage;
-        setStatus(status, statusMessage, 'error');
+        setStatus(status, 'Application submitted. Qualification checks approved your profile.', 'success');
+      } catch {
+        setStatus(status, 'Could not submit application right now. Please try again.', 'error');
       }
     });
   }
@@ -1002,13 +758,45 @@
   }
 
   function initTutorChat() {
-    const gmailLink = document.getElementById('chatGmailLink');
-    if (!gmailLink) return;
+    const chatForm = document.getElementById('chatForm');
+    if (!chatForm) return;
 
-    gmailLink.addEventListener('click', function (event) {
-      if (gmailLink.getAttribute('href') !== '#') return;
+    const status = document.getElementById('chatStatus');
+    const current = getCurrentUser();
+    if (current) {
+      chatForm.elements.studentName.value = current.name;
+      chatForm.elements.studentEmail.value = current.email;
+    }
+
+    window.submitChatMessage = function (event) {
       event.preventDefault();
-    });
+      const tutor = document.getElementById('chatTutorName').textContent;
+      const tutorEmail = document.getElementById('chatModal').dataset.tutorEmail || '';
+      const message = {
+        tutor,
+        tutorEmail,
+        studentName: chatForm.elements.studentName.value.trim(),
+        studentEmail: chatForm.elements.studentEmail.value.trim().toLowerCase(),
+        message: chatForm.elements.message.value.trim(),
+        createdAt: new Date().toISOString()
+      };
+
+      if (!message.message) {
+        setStatus(status, 'Please enter a message for the tutor.', 'error');
+        return;
+      }
+
+      const messages = loadJson(STORAGE_KEYS.chatMessages, []);
+      messages.push(message);
+      saveJson(STORAGE_KEYS.chatMessages, messages);
+
+      setStatus(status, `Message sent to ${tutor}! They'll get back to you soon.`, 'success');
+      chatForm.elements.message.value = '';
+
+      setTimeout(() => {
+        if (window.closeChatModal) window.closeChatModal();
+      }, 900);
+    };
   }
 
   document.addEventListener('DOMContentLoaded', function () {
@@ -1021,6 +809,5 @@
     initTutorDirectory();
     initSessionRequests();
     initTutorChat();
-    initOnboarding();
   });
 })();
