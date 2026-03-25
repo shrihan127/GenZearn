@@ -569,6 +569,10 @@ footer {
   color: #ffd1d1;
 }
 
+.status-message.warning {
+  color: #ffe08a;
+}
+
 .account-area {
   display: flex;
   align-items: center;
