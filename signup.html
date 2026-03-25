@@ -27,17 +27,11 @@
 
   <section class="form-section">
     <h2>Create Your GenZearn Account</h2>
-    <p>Choose whether you're joining as a student or tutor.</p>
+    <p>Get started by creating your account details below.</p>
     <form id="signupForm">
       <input type="text" name="fullName" placeholder="Full Name" required />
       <input type="email" name="email" placeholder="Email" required />
       <input type="password" name="password" placeholder="Password" required />
-      <select name="role" required>
-        <option value="" disabled selected>Sign up as...</option>
-        <option value="student">Student (I want to learn)</option>
-        <option value="tutor">Tutor (I want to teach)</option>
-      </select>
-      <input type="text" name="primarySubject" placeholder="Primary Subject of Interest (or Teaching Subject)" required />
       <button type="submit" class="btn primary">Create Account</button>
     </form>
     <p id="signupStatus" class="status-message" aria-live="polite"></p>
