@@ -217,7 +217,6 @@
           : '<p class="verification-pill pending">Qualification review pending</p>';
         return `
           <div class="tutor-card">
-            <img src="https://via.placeholder.com/120" alt="Tutor ${fullName}">
             <h3>${fullName}</h3>
             <p><strong>Subject:</strong> ${subject}</p>
             <p><strong>Qualifications:</strong> ${qualifications}</p>
