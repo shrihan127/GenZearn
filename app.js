@@ -240,7 +240,12 @@
       button.addEventListener('click', function () {
         const tutor = tutors[Number(button.dataset.tutorIndex)];
         if (!tutor) return;
-        openModal(String(tutor.fullName), Number(tutor.hourlyRate), String(tutor.subjects));
+        openModal(
+          String(tutor.fullName),
+          Number(tutor.hourlyRate),
+          String(tutor.subjects),
+          String(tutor.paymentLinks || '')
+        );
       });
     });
 
@@ -587,6 +592,10 @@
 
     form.addEventListener('submit', async function (event) {
       event.preventDefault();
+      const paymentLinksValue = form.elements.paymentLinks
+        ? form.elements.paymentLinks.value.trim()
+        : '';
+
       const application = {
         fullName: form.elements.fullName.value.trim(),
         email: form.elements.email.value.trim().toLowerCase(),
@@ -594,6 +603,7 @@
         qualifications: form.elements.qualifications.value.trim(),
         hourlyRate: Number(form.elements.hourlyRate.value),
         paymentMethod: form.elements.paymentMethod.value.trim(),
+        paymentLinks: paymentLinksValue,
         experience: form.elements.experience.value.trim(),
         qualificationProofFiles: selectedProofFiles.map((file) => ({
           name: file.name,
