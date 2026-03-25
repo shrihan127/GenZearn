@@ -416,8 +416,8 @@
       const name = form.elements.fullName.value.trim();
       const email = form.elements.email.value.trim().toLowerCase();
       const password = form.elements.password.value;
-      const role = form.elements.role.value;
-      const primarySubject = form.elements.primarySubject.value.trim();
+      const role = form.elements.role ? form.elements.role.value : '';
+      const primarySubject = form.elements.primarySubject ? form.elements.primarySubject.value.trim() : '';
 
       const users = loadJson(STORAGE_KEYS.users, []);
       if (users.some((u) => u.email === email)) {
