@@ -78,12 +78,16 @@
         <input type="email" name="email" placeholder="Your Email" required />
         <input id="subjectField" name="topic" type="text" placeholder="Subject / Topic" required />
         <input id="hoursField" name="hours" type="number" min="1" max="8" value="1" required onchange="updateTotal()" oninput="updateTotal()" />
-        <select name="paymentMethod" required>
+        <select id="paymentMethodField" name="paymentMethod" required onchange="updateSelectedPaymentLink()">
           <option value="" disabled selected>Payment Method</option>
           <option>Credit / Debit Card</option>
           <option>PayPal</option>
           <option>Bank Transfer</option>
         </select>
+        <div id="selectedPaymentLinkWrapper" class="payment-links-box" hidden>
+          <p><strong>Selected payment app link:</strong></p>
+          <p id="selectedPaymentLink"></p>
+        </div>
         <div class="payment-summary">
           <p><strong>Estimated total:</strong> <span id="totalCharge">$0.00</span></p>
         </div>
@@ -115,12 +119,18 @@
 
   <script>
     let currentRate = 0;
+    let currentTutorPaymentLinksByMethod = {};
 
     function openModal(tutor, rate, subject, paymentLinks) {
       document.getElementById('tutorName').textContent = tutor;
       document.getElementById('subjectField').value = subject;
       document.getElementById('hoursField').value = 1;
+      const paymentMethodField = document.getElementById('paymentMethodField');
+      if (paymentMethodField) {
+        paymentMethodField.selectedIndex = 0;
+      }
       renderTutorPaymentLinks(paymentLinks);
+      updateSelectedPaymentLink();
       currentRate = rate;
       updateTotal();
       document.getElementById('modal').style.display = 'flex';
@@ -134,6 +144,7 @@
         .map((entry) => entry.trim())
         .filter(Boolean);
 
+      currentTutorPaymentLinksByMethod = {};
       list.innerHTML = '';
       if (!entries.length) {
         wrapper.hidden = true;
@@ -142,7 +153,20 @@
 
       entries.forEach((entry) => {
         const item = document.createElement('li');
-        if (/^https?:\/\/\S+$/i.test(entry)) {
+        const methodMatch = entry.match(/^([^:|-]+)\s*[:|-]\s*(https?:\/\/\S+)$/i);
+        if (methodMatch) {
+          const method = methodMatch[1].trim().toLowerCase();
+          const url = methodMatch[2].trim();
+          currentTutorPaymentLinksByMethod[method] = url;
+          item.textContent = `${methodMatch[1].trim()}: `;
+
+          const link = document.createElement('a');
+          link.href = url;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = url;
+          item.appendChild(link);
+        } else if (/^https?:\/\/\S+$/i.test(entry)) {
           const link = document.createElement('a');
           link.href = entry;
           link.target = '_blank';
@@ -156,6 +180,32 @@
       });
 
       wrapper.hidden = false;
+    }
+
+    function updateSelectedPaymentLink() {
+      const paymentMethodField = document.getElementById('paymentMethodField');
+      const selectedPaymentLinkWrapper = document.getElementById('selectedPaymentLinkWrapper');
+      const selectedPaymentLink = document.getElementById('selectedPaymentLink');
+      if (!paymentMethodField || !selectedPaymentLinkWrapper || !selectedPaymentLink) return;
+
+      const selectedMethod = String(paymentMethodField.value || '').trim().toLowerCase();
+      const matchingUrl = currentTutorPaymentLinksByMethod[selectedMethod];
+
+      if (!matchingUrl) {
+        selectedPaymentLinkWrapper.hidden = true;
+        selectedPaymentLink.textContent = '';
+        return;
+      }
+
+      const link = document.createElement('a');
+      link.href = matchingUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = matchingUrl;
+
+      selectedPaymentLink.innerHTML = '';
+      selectedPaymentLink.appendChild(link);
+      selectedPaymentLinkWrapper.hidden = false;
     }
 
     function closeModal() {
