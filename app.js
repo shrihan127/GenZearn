@@ -157,33 +157,28 @@
     return recognizedCredentialPattern.test(value);
   }
 
-  function getAvailabilityLabel(providedAvailability) {
+  function getAvailabilityLabel(providedAvailability, workDays) {
+    if (Array.isArray(workDays) && workDays.length) {
+      return workDays.length === 7 ? 'high' : 'low';
+    }
+
     const availability = String(providedAvailability || '').trim().toLowerCase();
-
-    if (!availability) return 'waitlist';
-
-    const unavailablePattern = /\b(unavailable|not(?:\s+\w+){0,2}\s+available|no\s+availability|fully\s+booked|booked\s+out)\b/;
-    if (unavailablePattern.test(availability)) return 'waitlist';
-
-    const notAcceptingStudentsPattern = /\b(?:not|no\s+longer|isn['’]?t|aren['’]?t|currently\s+not)\s+accepting\s+students?\b/;
-    if (notAcceptingStudentsPattern.test(availability)) return 'waitlist';
+    if (availability === 'high' || availability === 'low') return availability;
 
     if (/\b(limited|few\s+slots?|partially\s+available|some\s+availability)\b/.test(availability)) {
-      return 'limited';
+      return 'low';
     }
 
     if (/\b(available\s+now|immediately\s+available|open\s+slots?|openings?|accepting\s+students?|available)\b/.test(availability)) {
-      return 'available';
+      return 'high';
     }
 
-    return 'waitlist';
+    return 'low';
   }
 
-  function getAvailabilityText(providedAvailability) {
-    const label = getAvailabilityLabel(providedAvailability);
-    if (label === 'available') return 'Available now';
-    if (label === 'limited') return 'Limited slots';
-    return 'Waitlist';
+  function getAvailabilityText(providedAvailability, workDays) {
+    const label = getAvailabilityLabel(providedAvailability, workDays);
+    return label === 'high' ? 'High availability' : 'Low availability';
   }
 
   function getTutorFilters() {
@@ -201,7 +196,7 @@
     return {
       ...tutor,
       rating: Math.min(5, Math.max(0, safeRating)),
-      availability: getAvailabilityLabel(tutor.availability)
+      availability: getAvailabilityLabel(tutor.availability, tutor.workDays)
     };
   }
 
@@ -210,7 +205,7 @@
       const subject = String(tutor.subjects || '').toLowerCase();
       const rate = Number(tutor.hourlyRate);
       const rating = Number(tutor.rating);
-      const availabilityLabel = getAvailabilityLabel(tutor.availability);
+      const availabilityLabel = getAvailabilityLabel(tutor.availability, tutor.workDays);
 
       if (filters.subject && !subject.includes(filters.subject)) return false;
       if (filters.maxPrice > 0 && rate > filters.maxPrice) return false;
@@ -238,7 +233,10 @@
         const fullName = String(tutor.fullName);
         const qualifications = String(tutor.qualifications);
         const rating = Number(tutor.rating).toFixed(1);
-        const availability = getAvailabilityText(tutor.availability);
+        const availability = getAvailabilityText(tutor.availability, tutor.workDays);
+        const workDays = Array.isArray(tutor.workDays) && tutor.workDays.length
+          ? `<p><strong>Work days:</strong> ${tutor.workDays.join(', ')}</p>`
+          : '';
         const experience = tutor.experience ? `<p><strong>Experience:</strong> ${tutor.experience}</p>` : '';
         const verificationLabel = tutor.verification
           ? `<p class="verification-pill ${tutor.verification.status}">${tutor.verification.message}</p>`
@@ -251,6 +249,7 @@
             <p><strong>Rate:</strong> $${rate} / hour</p>
             <p><strong>Rating:</strong> ⭐ ${rating}</p>
             <p><strong>Availability:</strong> ${availability}</p>
+            ${workDays}
             ${experience}
             ${verificationLabel}
             <div class="tutor-card-actions">
@@ -641,6 +640,7 @@
       const paymentLinksValue = form.elements.paymentLinks
         ? form.elements.paymentLinks.value.trim()
         : '';
+      const selectedWorkDays = Array.from(form.querySelectorAll('input[name="workDays"]:checked')).map((input) => input.value);
 
       const application = {
         fullName: form.elements.fullName.value.trim(),
@@ -651,6 +651,8 @@
         paymentMethod: form.elements.paymentMethod.value.trim(),
         paymentLinks: paymentLinksValue,
         experience: form.elements.experience.value.trim(),
+        workDays: selectedWorkDays,
+        availability: selectedWorkDays.length === 7 ? 'high' : 'low',
         qualificationProofFiles: selectedProofFiles.map((file) => ({
           name: file.name,
           size: file.size,
@@ -662,6 +664,11 @@
 
       if (!hasValidQualifications(application.qualifications)) {
         setStatus(status, 'Please enter valid qualifications (degree, certification, or teaching license).', 'error');
+        return;
+      }
+
+      if (!application.workDays.length) {
+        setStatus(status, 'Please choose at least one work day from Monday to Sunday.', 'error');
         return;
       }
 
