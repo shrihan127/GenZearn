@@ -519,20 +519,6 @@ footer {
   text-decoration: underline;
 }
 
-.find-tutors-page .footer-links a {
-  color: #fff;
-  font-size: 1rem;
-  font-weight: 500;
-}
-
-.find-tutors-page .footer-links a:hover {
-  color: #ffd700;
-  text-decoration: none;
-}
-
-
-
-
 @keyframes fadeIn {
   from {
     opacity: 0;
