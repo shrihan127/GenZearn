@@ -107,7 +107,28 @@
       ...value,
       _remoteKey: key
     }));
-    return [...remoteApplications, ...localApplications];
+    return remoteApplications;
+  }
+
+  function subscribeTutorApplications(onUpdate, onError) {
+    if (!db || typeof onUpdate !== 'function') return function () {};
+
+    const ref = db.ref('tutorApplications');
+    const handleValue = function (snapshot) {
+      const remoteApplications = Object.entries(snapshot.val() || {}).map(([key, value]) => ({
+        ...value,
+        _remoteKey: key
+      }));
+      onUpdate(remoteApplications);
+    };
+    const handleError = function () {
+      if (typeof onError === 'function') onError();
+    };
+
+    ref.on('value', handleValue, handleError);
+    return function () {
+      ref.off('value', handleValue);
+    };
   }
 
   function normalizeTutorList(applications) {
@@ -271,11 +292,16 @@
     const tutorList = document.getElementById('tutorList');
     if (!tutorList) return;
 
+    if (!db) {
+      tutorList.innerHTML = '<p class="status-message error">Tutor directory cloud sync is not configured. Add Firebase settings in firebase-config.js.</p>';
+      return;
+    }
+
     tutorList.innerHTML = '<p class="status-message">Loading tutors...</p>';
 
     try {
       const applications = await getTutorApplications();
-      const tutors = normalizeTutorList(applications)
+      let tutors = normalizeTutorList(applications)
         .map(enrichTutor)
         .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
@@ -293,6 +319,18 @@
       });
 
       applyFiltersAndRender();
+
+      subscribeTutorApplications(
+        function (remoteApplications) {
+          tutors = normalizeTutorList(remoteApplications)
+            .map(enrichTutor)
+            .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+          applyFiltersAndRender();
+        },
+        function () {
+          tutorList.innerHTML = '<p class="status-message error">Live tutor sync is unavailable right now. Please refresh and try again.</p>';
+        }
+      );
     } catch {
       tutorList.innerHTML = '<p class="status-message error">Could not load tutors right now. Please refresh and try again.</p>';
     }
@@ -629,16 +667,24 @@
 
       application.qualificationsVerified = true;
 
-      const apps = loadJson(STORAGE_KEYS.tutorApps, []);
-      apps.push(application);
-      saveJson(STORAGE_KEYS.tutorApps, apps);
+      if (!db) {
+        setStatus(
+          status,
+          'Cloud sync is not configured. Add your Firebase config in firebase-config.js so your profile appears for everyone.',
+          'error'
+        );
+        return;
+      }
 
       try {
         await createTutorApplication(application);
+        const apps = loadJson(STORAGE_KEYS.tutorApps, []);
+        apps.push(application);
+        saveJson(STORAGE_KEYS.tutorApps, apps);
         form.reset();
         selectedProofFiles = [];
         renderProofFiles();
-        setStatus(status, 'Application sent', 'success');
+        setStatus(status, 'Application sent and synced to all students.', 'success');
       } catch {
         setStatus(status, 'Could not submit application right now. Please try again.', 'error');
       }
