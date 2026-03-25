@@ -214,7 +214,7 @@
         const experience = tutor.experience ? `<p><strong>Experience:</strong> ${tutor.experience}</p>` : '';
         const verificationLabel = tutor.verification
           ? `<p class="verification-pill ${tutor.verification.status}">${tutor.verification.message}</p>`
-          : '<p class="verification-pill pending">Qualification review pending</p>';
+          : '';
         return `
           <div class="tutor-card">
             <h3>${fullName}</h3>
