@@ -63,21 +63,6 @@ body {
   color: #ffd700;
 }
 
-.nav-links a.nav-cta {
-  background: #ffd700;
-  color: #003a92;
-  padding: 10px 16px;
-  border-radius: 999px;
-  font-size: 1rem;
-  font-weight: 500;
-}
-
-.nav-links a.nav-cta:hover,
-.nav-links a.nav-cta.active {
-  background: #fff;
-  color: #003a92;
-}
-
 .hero {
   text-align: center;
   padding: 80px 20px;
@@ -103,26 +88,11 @@ body {
   animation: fadeIn 2s ease;
 }
 
-.hero .eyebrow {
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.86rem;
-  font-weight: 700;
-  color: #ffd700;
-  margin-bottom: 14px;
-}
-
-.hero .hero-proof {
-  font-size: 1rem;
-  opacity: 0.95;
-}
-
 .cta-row {
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
   gap: 14px;
-  align-items: center;
 }
 
 .cta {
@@ -150,15 +120,6 @@ body {
   border-color: #ffd700;
 }
 
-.hero-secondary-link {
-  color: #fff;
-  font-weight: 500;
-}
-
-.hero-secondary-link:hover {
-  color: #ffd700;
-}
-
 .features {
   width: min(1100px, 94%);
   margin: 0 auto;
@@ -166,49 +127,6 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: 20px;
   padding: 0 0 40px;
-}
-
-.journey {
-  width: min(1100px, 94%);
-  margin: 0 auto;
-  padding: 10px 0 42px;
-}
-
-.journey h3 {
-  text-align: center;
-  font-size: 2rem;
-  color: #ffd700;
-  margin-bottom: 20px;
-}
-
-.journey-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 18px;
-}
-
-.journey-step {
-  background: #003a92;
-  border-radius: 14px;
-  padding: 20px;
-  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.2);
-}
-
-.journey-step h4 {
-  margin-bottom: 8px;
-}
-
-.step-number {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 34px;
-  width: 34px;
-  border-radius: 50%;
-  background: #ffd700;
-  color: #003a92;
-  font-weight: 700;
-  margin-bottom: 10px;
 }
 
 .feature-card {
@@ -238,20 +156,6 @@ body {
   color: #ffd700;
 }
 
-.primary-cta-section {
-  text-align: center;
-  padding: 0 20px 60px;
-}
-
-.primary-cta-section h3 {
-  margin-bottom: 16px;
-  color: #ffd700;
-}
-
-.primary-cta-section p {
-  margin-bottom: 14px;
-}
-
 .form-section {
   background-color: #0046ad;
   text-align: center;
@@ -275,17 +179,6 @@ body {
   gap: 14px;
   max-width: 460px;
   margin: 0 auto;
-}
-
-.form-legal-note {
-  font-size: 0.85rem;
-  line-height: 1.5;
-  opacity: 0.9;
-  margin-top: 4px;
-}
-
-.form-legal-note a {
-  color: #ffd700;
 }
 
 .form-section input,
@@ -530,21 +423,6 @@ textarea {
   gap: 10px;
 }
 
-#chatModal .modal-content p {
-  margin-top: 4px;
-  margin-bottom: 14px;
-}
-
-#chatGmailLink {
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  margin-top: 8px;
-  line-height: 1.35;
-  word-break: break-word;
-}
-
 .payment-summary {
   text-align: left;
   background: rgba(0, 0, 0, 0.2);
@@ -586,56 +464,6 @@ footer {
 
 .footer-links a:hover {
   text-decoration: underline;
-}
-
-.trust-signals {
-  width: min(1100px, 94%);
-  margin: 0 auto;
-  padding: 10px 0 40px;
-}
-
-.trust-signals h3 {
-  text-align: center;
-  font-size: 2rem;
-  color: #ffd700;
-  margin-bottom: 18px;
-}
-
-.trust-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 18px;
-}
-
-.trust-card {
-  background: #003a92;
-  border-radius: 14px;
-  padding: 20px;
-  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.2);
-  line-height: 1.5;
-}
-
-.trust-card h4 {
-  color: #ffd700;
-  margin-bottom: 10px;
-}
-
-.proof-list {
-  margin-left: 20px;
-}
-
-.proof-list li {
-  margin-bottom: 8px;
-}
-
-.metric-pill {
-  display: inline-block;
-  background: rgba(255, 215, 0, 0.15);
-  border: 1px solid rgba(255, 215, 0, 0.55);
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-weight: 600;
-  margin-bottom: 10px;
 }
 
 
@@ -839,82 +667,4 @@ footer {
 
 .legal-card a {
   color: #ffd700;
-}
-
-.checkbox-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 10px;
-  margin: 8px auto;
-  max-width: 620px;
-  text-align: left;
-}
-
-.checkbox-row input[type='checkbox'] {
-  margin-top: 4px;
-  transform: scale(1.2);
-}
-
-.onboarding-section {
-  max-width: 860px;
-  margin: 0 auto;
-}
-
-.progress-shell {
-  width: min(620px, 95%);
-  margin: 22px auto;
-  text-align: left;
-}
-
-.progress-meta {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  font-weight: 600;
-}
-
-.progress-track {
-  width: 100%;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 999px;
-  height: 12px;
-  overflow: hidden;
-}
-
-.progress-track span {
-  display: block;
-  height: 100%;
-  width: 0;
-  background: #ffd700;
-  transition: width 0.25s ease;
-}
-
-.onboarding-form {
-  display: grid;
-  gap: 10px;
-  margin-top: 18px;
-}
-
-.followup-card {
-  width: min(620px, 95%);
-  margin: 22px auto;
-  background: #003a92;
-  border-radius: 14px;
-  padding: 18px;
-  text-align: left;
-}
-
-.followup-card h3 {
-  color: #ffd700;
-  margin-bottom: 8px;
-}
-
-.followup-card ul {
-  margin-left: 18px;
-  line-height: 1.6;
-}
-
-.onboarding-actions {
-  margin-top: 16px;
 }
