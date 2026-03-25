@@ -37,6 +37,19 @@
       <input type="text" name="paymentMethod" placeholder="Payment Method (Bank transfer, PayPal, etc.)" required />
       <textarea name="paymentLinks" placeholder="Payment links for students (optional: PayPal, Venmo, Cash App, etc. — one per line)"></textarea>
       <textarea name="experience" placeholder="Brief description of your teaching experience" required></textarea>
+      <fieldset class="availability-selector">
+        <legend>Work Days (Monday to Sunday)</legend>
+        <p class="availability-help">Select the days you want to work. All 7 days = High availability. Anything less = Low availability.</p>
+        <div class="availability-days">
+          <label><input type="checkbox" name="workDays" value="Monday" /> Monday</label>
+          <label><input type="checkbox" name="workDays" value="Tuesday" /> Tuesday</label>
+          <label><input type="checkbox" name="workDays" value="Wednesday" /> Wednesday</label>
+          <label><input type="checkbox" name="workDays" value="Thursday" /> Thursday</label>
+          <label><input type="checkbox" name="workDays" value="Friday" /> Friday</label>
+          <label><input type="checkbox" name="workDays" value="Saturday" /> Saturday</label>
+          <label><input type="checkbox" name="workDays" value="Sunday" /> Sunday</label>
+        </div>
+      </fieldset>
       <label for="qualificationProofFiles" class="upload-label">Qualification Proof (Drop files or upload)</label>
       <div id="qualificationProofDropzone" class="file-dropzone" tabindex="0" role="button" aria-label="Drop qualification proof files here or click to upload">
         <p><strong>Drop PDF/files here</strong> or click to upload.</p>
