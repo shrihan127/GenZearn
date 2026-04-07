@@ -1,26 +1,27 @@
 import { initializeApp } from "firebase/app";
+import { getAnalytics, isSupported } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
 
-/**
- * Firebase web app configuration.
- *
- * Replace these placeholder values with your real Firebase project credentials
- * from: Firebase Console → Project settings → Your apps → SDK setup and configuration.
- */
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCna2awece-Xe7d_l0IeJ97cGXrnxZE0es",
+  authDomain: "genzearn-a0313.firebaseapp.com",
+  projectId: "genzearn-a0313",
+  storageBucket: "genzearn-a0313.firebasestorage.app",
+  messagingSenderId: "514449582943",
+  appId: "1:514449582943:web:58dea5dcf7d88263db64ea",
+  measurementId: "G-TD6NPH9PVE"
 };
 
 const app = initializeApp(firebaseConfig);
-
-/**
- * Firestore database instance for app-wide usage.
- */
 const db = getFirestore(app);
 
-export { app, db };
+let analytics = null;
+if (typeof window !== "undefined") {
+  isSupported().then((supported) => {
+    if (supported) {
+      analytics = getAnalytics(app);
+    }
+  });
+}
+
+export { app, db, analytics, firebaseConfig };
