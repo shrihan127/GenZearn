@@ -138,19 +138,51 @@
     var tutorForm = document.getElementById('tutorForm');
     var tutorList = document.getElementById('tutorList');
 
+    function getSafeImageUrl(photoURL) {
+      if (!photoURL) return '';
+      try {
+        var parsedUrl = new URL(photoURL, window.location.origin);
+        var allowedProtocols = ['http:', 'https:'];
+        return allowedProtocols.includes(parsedUrl.protocol) ? parsedUrl.href : '';
+      } catch (error) {
+        return '';
+      }
+    }
+
     function renderTutor(tutor) {
       var wrapper = document.createElement('article');
       wrapper.className = 'feature-card';
 
-      var imgHTML = tutor.photoURL
-        ? '<img src="' + tutor.photoURL + '" alt="' + tutor.name + ' profile" style="max-width:120px;border-radius:8px;display:block;margin-bottom:8px;" />'
-        : '';
+      var safeName = String(tutor.name || 'Tutor');
+      var safeSubjects = Array.isArray(tutor.subjects) ? tutor.subjects : [];
+      var safeBio = String(tutor.bio || '');
 
-      wrapper.innerHTML =
-        imgHTML +
-        '<h4>' + tutor.name + '</h4>' +
-        '<p><strong>Subjects:</strong> ' + tutor.subjects.join(', ') + '</p>' +
-        '<p>' + tutor.bio + '</p>';
+      var safePhotoURL = getSafeImageUrl(tutor.photoURL);
+      if (safePhotoURL) {
+        var image = document.createElement('img');
+        image.src = safePhotoURL;
+        image.alt = safeName + ' profile';
+        image.style.maxWidth = '120px';
+        image.style.borderRadius = '8px';
+        image.style.display = 'block';
+        image.style.marginBottom = '8px';
+        wrapper.appendChild(image);
+      }
+
+      var nameHeading = document.createElement('h4');
+      nameHeading.textContent = safeName;
+      wrapper.appendChild(nameHeading);
+
+      var subjectsParagraph = document.createElement('p');
+      var subjectsLabel = document.createElement('strong');
+      subjectsLabel.textContent = 'Subjects:';
+      subjectsParagraph.appendChild(subjectsLabel);
+      subjectsParagraph.append(' ' + safeSubjects.join(', '));
+      wrapper.appendChild(subjectsParagraph);
+
+      var bioParagraph = document.createElement('p');
+      bioParagraph.textContent = safeBio;
+      wrapper.appendChild(bioParagraph);
 
       tutorList.appendChild(wrapper);
     }
