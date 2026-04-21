@@ -383,6 +383,27 @@
 
     const status = document.getElementById('signupStatus');
     const submitButton = form.querySelector('button[type="submit"]');
+    const tutorFields = document.getElementById('tutorSignupFields');
+    const studentFields = document.getElementById('studentSignupFields');
+    const roleInputs = Array.from(form.querySelectorAll('input[name="role"]'));
+    const tutorRequiredFields = ['subjects', 'qualifications', 'hourlyRate', 'paymentMethod', 'experience'];
+
+    function updateRoleUI() {
+      const selectedRole = form.elements.role ? form.elements.role.value : 'student';
+      const isTutor = selectedRole === 'tutor';
+
+      if (tutorFields) tutorFields.classList.toggle('hidden', !isTutor);
+      if (studentFields) studentFields.classList.toggle('hidden', isTutor);
+
+      tutorRequiredFields.forEach((fieldName) => {
+        if (!form.elements[fieldName]) return;
+        form.elements[fieldName].required = isTutor;
+      });
+    }
+
+    roleInputs.forEach((input) => input.addEventListener('change', updateRoleUI));
+    updateRoleUI();
+
     form.addEventListener('submit', async function (event) {
       event.preventDefault();
       if (submitButton) submitButton.disabled = true;
@@ -390,8 +411,8 @@
       const name = form.elements.fullName.value.trim();
       const email = form.elements.email.value.trim().toLowerCase();
       const password = form.elements.password.value;
-      const role = form.elements.role ? form.elements.role.value : '';
-      const primarySubject = form.elements.primarySubject ? form.elements.primarySubject.value.trim() : '';
+      const role = form.elements.role ? form.elements.role.value : 'student';
+      const primarySubject = form.elements.subjects ? form.elements.subjects.value.trim() : '';
 
       const users = loadJson(STORAGE_KEYS.users, []);
       if (users.some((u) => u.email === email)) {
@@ -421,6 +442,43 @@
           await createUserRecord(user);
         } catch {
           // Keep local signup working even if cloud sync fails.
+        }
+
+        if (role === 'tutor') {
+          const selectedWorkDays = Array.from(form.querySelectorAll('input[name="workDays"]:checked')).map((input) => input.value);
+          const application = {
+            fullName: name,
+            email,
+            subjects: form.elements.subjects.value.trim(),
+            qualifications: form.elements.qualifications.value.trim(),
+            hourlyRate: Number(form.elements.hourlyRate.value),
+            paymentMethod: form.elements.paymentMethod.value.trim(),
+            paymentLinks: form.elements.paymentLinks ? form.elements.paymentLinks.value.trim() : '',
+            experience: form.elements.experience.value.trim(),
+            workDays: selectedWorkDays,
+            availability: selectedWorkDays.length === 7 ? 'high' : 'low',
+            referral: '',
+            qualificationProofFiles: [],
+            createdAt: new Date().toISOString()
+          };
+
+          if (!hasValidQualifications(application.qualifications)) {
+            setStatus(status, 'Please enter valid qualifications (degree, certification, or teaching license).', 'error');
+            return;
+          }
+
+          if (!application.workDays.length) {
+            setStatus(status, 'Please choose at least one work day from Monday to Sunday.', 'error');
+            return;
+          }
+
+          application.qualificationsVerified = true;
+
+          try {
+            await createTutorApplication(application);
+          } catch {
+            // Keep tutor signup working even if tutor profile sync fails.
+          }
         }
 
         setCurrentUser({ name: user.name, email: user.email, role: user.role });

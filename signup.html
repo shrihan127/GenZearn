@@ -3,165 +3,84 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tutor Profile Form</title>
-  <style>
-    :root {
-      color-scheme: light;
-      --bg: #f4f7ff;
-      --surface: #ffffff;
-      --text: #1f2937;
-      --muted: #6b7280;
-      --accent: #4f46e5;
-      --accent-hover: #4338ca;
-      --border: #d1d5db;
-      --radius: 12px;
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      background: linear-gradient(180deg, #eef2ff 0%, var(--bg) 100%);
-      color: var(--text);
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      padding: 24px;
-    }
-
-    .form-card {
-      width: min(760px, 100%);
-      background: var(--surface);
-      border: 1px solid #e5e7eb;
-      border-radius: var(--radius);
-      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
-      padding: clamp(20px, 4vw, 36px);
-    }
-
-    h1 {
-      margin: 0 0 8px;
-      font-size: clamp(1.4rem, 2vw, 1.8rem);
-    }
-
-    .subtitle {
-      margin: 0 0 24px;
-      color: var(--muted);
-      font-size: 0.95rem;
-    }
-
-    form {
-      display: grid;
-      gap: 16px;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 16px;
-    }
-
-    @media (min-width: 700px) {
-      .grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-
-    .field {
-      display: grid;
-      gap: 6px;
-    }
-
-    label {
-      font-size: 0.9rem;
-      font-weight: 600;
-    }
-
-    input,
-    textarea {
-      width: 100%;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 12px;
-      font: inherit;
-      color: inherit;
-      background: #fff;
-    }
-
-    textarea {
-      resize: vertical;
-      min-height: 110px;
-    }
-
-    input:focus,
-    textarea:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
-    }
-
-    .full-width {
-      grid-column: 1 / -1;
-    }
-
-    button {
-      width: fit-content;
-      border: 0;
-      border-radius: 10px;
-      padding: 11px 18px;
-      font: inherit;
-      font-weight: 600;
-      color: #fff;
-      background: var(--accent);
-      cursor: pointer;
-      transition: background-color 150ms ease;
-    }
-
-    button:hover {
-      background: var(--accent-hover);
-    }
-  </style>
+  <title>Sign Up | GenZearn</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <section class="form-card" aria-labelledby="tutor-form-title">
-    <h1 id="tutor-form-title">Tutor Profile Setup</h1>
-    <p class="subtitle">Complete your details so students can find the right tutor.</p>
+  <header>
+    <div class="navbar">
+      <a href="index.html" class="logo">
+        <img src="logo.png" alt="GenZearn Logo" class="site-logo">
+        <span class="site-name">GenZearn</span>
+      </a>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="find-tutors.html">Find Tutors</a>
+        <a href="teach-on-genzearn.html">Teach on GenZearn</a>
+        <a href="faq.html">FAQ</a>
+        <a href="contact.html">Contact</a>
+        <a href="signup.html" class="active">Sign Up</a>
+        <a href="login.html">Login</a>
+      </nav>
+    </div>
+  </header>
 
-    <form action="#" method="post">
-      <div class="grid">
-        <div class="field">
-          <label for="name">Name</label>
-          <input id="name" name="name" type="text" autocomplete="name" required />
-        </div>
+  <section class="form-section">
+    <h2>Create Your GenZearn Account</h2>
+    <p>Choose your role below. Students can start booking sessions right away, and tutors can submit their full teaching profile during sign-up.</p>
 
-        <div class="field">
-          <label for="subjects">Subjects</label>
-          <input id="subjects" name="subjects" type="text" placeholder="e.g. Algebra, Biology" required />
-        </div>
+    <form id="signupForm">
+      <input type="text" name="fullName" placeholder="Full Name" autocomplete="name" required />
+      <input type="email" name="email" placeholder="Email" autocomplete="email" required />
+      <input type="password" name="password" placeholder="Password (min 6 characters)" minlength="6" required />
 
-        <div class="field">
-          <label for="hourlyRate">Hourly Rate (USD)</label>
-          <input id="hourlyRate" name="hourlyRate" type="number" min="0" step="1" required />
+      <fieldset class="role-selector">
+        <legend>Sign up as</legend>
+        <div class="role-options">
+          <label><input type="radio" name="role" value="student" checked /> Student</label>
+          <label><input type="radio" name="role" value="tutor" /> Tutor</label>
         </div>
+      </fieldset>
 
-        <div class="field">
-          <label for="email">Email</label>
-          <input id="email" name="email" type="email" autocomplete="email" required />
-        </div>
-
-        <div class="field full-width">
-          <label for="bio">Bio</label>
-          <textarea id="bio" name="bio" placeholder="Tell students about your experience and teaching style." required></textarea>
-        </div>
-
-        <div class="field full-width">
-          <label for="imageUrl">Profile Image URL (optional)</label>
-          <input id="imageUrl" name="imageUrl" type="url" placeholder="https://example.com/photo.jpg" />
-        </div>
+      <div id="studentSignupFields">
+        <p class="signup-note">You are all set. Once your account is created, you can go straight to Find Tutors and schedule a session.</p>
       </div>
 
-      <button type="submit">Submit</button>
+      <div id="tutorSignupFields" class="hidden">
+        <input type="text" name="subjects" placeholder="Subjects You Teach" />
+        <input type="text" name="qualifications" placeholder="Qualifications (Degree, certification, or licensed status)" />
+        <input type="number" name="hourlyRate" min="5" step="1" placeholder="Your Hourly Rate (USD)" />
+        <input type="text" name="paymentMethod" placeholder="Payment Method (PayPal, etc.)" />
+        <textarea name="paymentLinks" placeholder="Payment links for students (optional: PayPal, Venmo, Cash App, etc. — one per line)"></textarea>
+        <textarea name="experience" placeholder="Brief description of your teaching experience"></textarea>
+        <fieldset class="availability-selector">
+          <legend>Work Days (Monday to Sunday)</legend>
+          <p class="availability-help">Select the days you want to work. All 7 days = High availability. Anything less = Low availability.</p>
+          <div class="availability-days">
+            <label><input type="checkbox" name="workDays" value="Monday" /> Monday</label>
+            <label><input type="checkbox" name="workDays" value="Tuesday" /> Tuesday</label>
+            <label><input type="checkbox" name="workDays" value="Wednesday" /> Wednesday</label>
+            <label><input type="checkbox" name="workDays" value="Thursday" /> Thursday</label>
+            <label><input type="checkbox" name="workDays" value="Friday" /> Friday</label>
+            <label><input type="checkbox" name="workDays" value="Saturday" /> Saturday</label>
+            <label><input type="checkbox" name="workDays" value="Sunday" /> Sunday</label>
+          </div>
+        </fieldset>
+      </div>
+
+      <button type="submit" class="btn primary">Create Account</button>
     </form>
+    <p id="signupStatus" class="status-message" aria-live="polite"></p>
+    <p>Already have an account? <a href="login.html">Log in</a></p>
   </section>
+
+  <footer>
+    <p>© 2025 GenZearn. All rights reserved.</p>
+    <p class="footer-links">By using this page, you agree to our <a href="terms-and-conditions.html">Terms &amp; Conditions</a>, <a href="privacy-policy.html">Privacy Policy</a>, and <a href="refund-policy.html">Refund Policy</a>.</p>
+  </footer>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="app.js" defer></script>
 </body>
 </html>
