@@ -3,6 +3,7 @@
     users: 'genzearn_users',
     currentUser: 'genzearn_current_user',
     tutorApps: 'genzearn_tutor_applications',
+    pendingTutorApps: 'genzearn_pending_tutor_applications',
     sessionRequests: 'genzearn_session_requests',
     chatMessages: 'genzearn_chat_messages'
   };
@@ -48,6 +49,14 @@
     saveJson(STORAGE_KEYS.currentUser, user);
   }
 
+
+  function getUserKeyFromEmail(email) {
+    return String(email || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '_');
+  }
+
   function buildGmailComposeLink(email) {
     if (!email) return '';
     const normalizedEmail = String(email).trim().toLowerCase();
@@ -67,7 +76,15 @@
   async function findUserByEmail(email) {
     if (!db) return null;
 
-    const snapshot = await db.ref('users').orderByChild('email').equalTo(email).limitToFirst(1).once('value');
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const userKey = getUserKeyFromEmail(normalizedEmail);
+
+    const keyedSnapshot = await db.ref(`usersByEmail/${userKey}`).once('value');
+    if (keyedSnapshot.exists()) {
+      return { key: userKey, ...keyedSnapshot.val() };
+    }
+
+    const snapshot = await db.ref('users').orderByChild('email').equalTo(normalizedEmail).limitToFirst(1).once('value');
     const users = snapshot.val();
     if (!users) return null;
 
@@ -77,14 +94,30 @@
 
   async function updateRemoteUserPassword(email, newPassword) {
     if (!db) return;
-    const user = await findUserByEmail(email);
-    if (!user || !user.key) return;
-    await db.ref(`users/${user.key}/password`).set(newPassword);
+
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const keyedRef = db.ref(`usersByEmail/${getUserKeyFromEmail(normalizedEmail)}/password`);
+
+    try {
+      await keyedRef.set(newPassword);
+    } catch {
+      const user = await findUserByEmail(normalizedEmail);
+      if (!user || !user.key) return;
+      await db.ref(`users/${user.key}/password`).set(newPassword);
+    }
   }
 
   async function createUserRecord(user) {
     if (!db) return;
-    await db.ref('users').push(user);
+
+    const normalizedEmail = String(user.email || '').trim().toLowerCase();
+    const userRecord = { ...user, email: normalizedEmail };
+    const userKey = getUserKeyFromEmail(normalizedEmail);
+
+    await Promise.all([
+      db.ref(`usersByEmail/${userKey}`).set(userRecord),
+      db.ref('users').push(userRecord)
+    ]);
   }
 
   async function createTutorApplication(application) {
@@ -92,6 +125,45 @@
     await db.ref('tutorApplications').push(application);
   }
 
+  function queueTutorApplicationForSync(application) {
+    const pendingApplications = loadJson(STORAGE_KEYS.pendingTutorApps, []);
+    pendingApplications.push(application);
+    saveJson(STORAGE_KEYS.pendingTutorApps, pendingApplications);
+  }
+
+  async function flushPendingTutorApplications() {
+    if (!db) return;
+
+    const pendingApplications = loadJson(STORAGE_KEYS.pendingTutorApps, []);
+    if (!pendingApplications.length) return;
+
+    const stillPending = [];
+    for (const application of pendingApplications) {
+      try {
+        await createTutorApplication(application);
+      } catch {
+        stillPending.push(application);
+      }
+    }
+
+    saveJson(STORAGE_KEYS.pendingTutorApps, stillPending);
+  }
+
+  function subscribeUsers(onUpdate) {
+    if (!db || typeof onUpdate !== 'function') return function () {};
+
+    const ref = db.ref('usersByEmail');
+    const handleValue = function (snapshot) {
+      const usersByEmail = snapshot.val() || {};
+      const users = Object.values(usersByEmail);
+      onUpdate(users);
+    };
+
+    ref.on('value', handleValue);
+    return function () {
+      ref.off('value', handleValue);
+    };
+  }
 
   async function createSessionRequest(request) {
     if (!db) return;
@@ -375,6 +447,42 @@
     } else {
       accountArea.innerHTML = '';
     }
+  }
+
+
+  function mergeUsersByEmail(existingUsers, incomingUsers) {
+    const usersByEmail = new Map();
+
+    existingUsers.forEach((user) => {
+      const email = String(user.email || '').trim().toLowerCase();
+      if (!email) return;
+      usersByEmail.set(email, { ...user, email });
+    });
+
+    incomingUsers.forEach((user) => {
+      const email = String(user.email || '').trim().toLowerCase();
+      if (!email) return;
+      const previous = usersByEmail.get(email) || {};
+      usersByEmail.set(email, { ...previous, ...user, email });
+    });
+
+    return Array.from(usersByEmail.values());
+  }
+
+  function initUserCloudSync() {
+    if (!db) return;
+
+    const localUsers = loadJson(STORAGE_KEYS.users, []);
+    localUsers.forEach((user) => {
+      createUserRecord(user).catch(function () {
+        // keep startup resilient if one local user cannot be synced yet
+      });
+    });
+
+    subscribeUsers(function (remoteUsers) {
+      const mergedUsers = mergeUsersByEmail(loadJson(STORAGE_KEYS.users, []), remoteUsers);
+      saveJson(STORAGE_KEYS.users, mergedUsers);
+    });
   }
 
   function initSignup() {
@@ -742,13 +850,15 @@
 
       try {
         await createTutorApplication(application);
+        await flushPendingTutorApplications();
 
         form.reset();
         selectedProofFiles = [];
         renderProofFiles();
         setStatus(status, 'Application sent and synced to all students.', 'success');
       } catch {
-        setStatus(status, 'Could not submit application right now. Please try again.', 'error');
+        queueTutorApplicationForSync(application);
+        setStatus(status, 'Application saved on this device. We will keep retrying cloud sync automatically.', 'error');
       }
     });
   }
@@ -841,6 +951,8 @@
   document.addEventListener('DOMContentLoaded', function () {
     initFirebase();
     updateAuthUI();
+    initUserCloudSync();
+    flushPendingTutorApplications();
     initSignup();
     initLogin();
     initForgotPassword();
