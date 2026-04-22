@@ -595,104 +595,61 @@
     roleInputs.forEach((input) => input.addEventListener('change', updateRoleUI));
     updateRoleUI();
 
+    const auth = firebase.auth();
+
     form.addEventListener('submit', async function (event) {
       event.preventDefault();
-      if (submitButton) submitButton.disabled = true;
+
+      const submitButton = form.querySelector('button[type="submit"]');
+      const status = document.getElementById('signupStatus');
 
       const name = form.elements.fullName.value.trim();
       const email = form.elements.email.value.trim().toLowerCase();
       const password = form.elements.password.value;
-      const role = form.elements.role ? form.elements.role.value : 'student';
-      const primarySubject = form.elements.subjects ? form.elements.subjects.value.trim() : '';
+      const role = form.elements.role.value;
 
-      const users = loadJson(STORAGE_KEYS.users, []);
-      if (users.some((u) => u.email === email)) {
-        setStatus(status, 'An account with this email already exists. Please log in.', 'error');
-        if (submitButton) submitButton.disabled = false;
-        return;
-      }
+      submitButton.disabled = true;
 
       try {
-        await createFirebaseAuthUser(email, password);
+        // 1. Create Firebase Auth user
+        const result = await auth.createUserWithEmailAndPassword(email, password);
 
-        if (db) {
-          try {
-            const existingRemoteUser = await findUserByEmail(email);
-            if (existingRemoteUser) {
-              setStatus(status, 'An account with this email already exists. Please log in.', 'error');
-              return;
-            }
-          } catch {
-            setStatus(status, 'Continuing with local account creation (cloud sync unavailable).', 'error');
-          }
-        }
+        // 2. Update display name
+        await result.user.updateProfile({
+          displayName: name
+        });
 
-        const user = { name, email, password, role, primarySubject, createdAt: new Date().toISOString() };
-        users.push(user);
-        saveJson(STORAGE_KEYS.users, users);
-
-        try {
-          await createUserRecord(user);
-        } catch {
-          // Keep local signup working even if cloud sync fails.
-        }
-
-        if (role === 'tutor') {
-          const selectedWorkDays = Array.from(form.querySelectorAll('input[name="workDays"]:checked')).map((input) => input.value);
-          const application = {
-            fullName: name,
+        // 3. Store extra user data in Realtime Database (optional)
+        if (firebase.database) {
+          await firebase.database().ref('users/' + result.user.uid).set({
+            name,
             email,
-            subjects: form.elements.subjects.value.trim(),
-            qualifications: form.elements.qualifications.value.trim(),
-            hourlyRate: Number(form.elements.hourlyRate.value),
-            paymentMethod: form.elements.paymentMethod.value.trim(),
-            paymentLinks: form.elements.paymentLinks ? form.elements.paymentLinks.value.trim() : '',
-            experience: form.elements.experience.value.trim(),
-            workDays: selectedWorkDays,
-            availability: selectedWorkDays.length === 7 ? 'high' : 'low',
-            qualificationProofFiles: selectedProofFiles.map((file) => ({
-              name: file.name,
-              size: file.size,
-              type: file.type || 'application/octet-stream'
-            })),
-            referral: form.elements.referral ? form.elements.referral.value.trim() : '',
+            role,
             createdAt: new Date().toISOString()
-          };
-
-          if (!hasValidQualifications(application.qualifications)) {
-            setStatus(status, 'Please enter valid qualifications (degree, certification, or teaching license).', 'error');
-            return;
-          }
-
-          if (!application.workDays.length) {
-            setStatus(status, 'Please choose at least one work day from Monday to Sunday.', 'error');
-            return;
-          }
-
-          application.qualificationsVerified = true;
-
-          try {
-            await createTutorApplication(application);
-          } catch {
-            // Keep tutor signup working even if tutor profile sync fails.
-          }
+          });
         }
 
-        setCurrentUser({ name: user.name, email: user.email, role: user.role });
+        setStatus(status, 'Account created successfully!', 'success');
 
-        if (role === 'tutor') {
-          selectedProofFiles = [];
-          renderProofFiles();
-        }
-
-        setStatus(status, 'Account created successfully! Redirecting to tutors...', 'success');
         setTimeout(() => {
           window.location.href = 'find-tutors.html';
         }, 800);
       } catch (error) {
-        setStatus(status, error.message || 'Could not create account right now. Please try again.', 'error');
+        console.log(error.code, error.message);
+
+        let message = 'Could not create account.';
+
+        if (error.code === 'auth/email-already-in-use') {
+          message = 'This email is already registered. Please log in.';
+        } else if (error.code === 'auth/invalid-email') {
+          message = 'Invalid email address.';
+        } else if (error.code === 'auth/weak-password') {
+          message = 'Password must be at least 6 characters.';
+        }
+
+        setStatus(status, message, 'error');
       } finally {
-        if (submitButton) submitButton.disabled = false;
+        submitButton.disabled = false;
       }
     });
   }
