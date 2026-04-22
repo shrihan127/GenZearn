@@ -560,6 +560,12 @@
     if (!form) return;
 
     const status = document.getElementById('loginStatus');
+    if (!window.firebase || typeof window.firebase.auth !== 'function') {
+      setStatus(status, 'Firebase Auth is not configured right now.', 'error');
+      return;
+    }
+
+    const auth = window.firebase.auth();
     form.addEventListener('submit', async function (event) {
       event.preventDefault();
       const email = form.elements.email.value.trim().toLowerCase();
@@ -575,6 +581,16 @@
         if (!user) throw new Error('Could not load user profile.');
         setCurrentUser({ name: user.name, email: user.email, role: user.role || '' });
         setStatus(status, 'Logged in successfully! Redirecting...', 'success');
+        const result = await auth.signInWithEmailAndPassword(email, password);
+        const user = result && result.user ? result.user : null;
+        const profile = user ? await findUserByEmail(user.email || email) : null;
+
+        setCurrentUser({
+          name: (profile && profile.name) || (user && user.displayName) || '',
+          email: (user && user.email) || email,
+          role: (profile && profile.role) || ''
+        });
+        setStatus(status, 'Login successful!', 'success');
         setTimeout(() => {
           window.location.href = 'find-tutors.html';
         }, 800);
@@ -588,6 +604,15 @@
           return;
         }
         setStatus(status, 'Could not log in right now. Please try again.', 'error');
+        let message = 'Could not log in.';
+        if (error && error.code === 'auth/user-not-found') {
+          message = 'No account found with this email.';
+        } else if (error && error.code === 'auth/wrong-password') {
+          message = 'Incorrect password.';
+        } else if (error && error.code === 'auth/invalid-email') {
+          message = 'Invalid email.';
+        }
+        setStatus(status, message, 'error');
       }
     });
   }
