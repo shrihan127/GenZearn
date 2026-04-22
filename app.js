@@ -485,6 +485,28 @@
     });
   }
 
+
+  async function createFirebaseAuthUser(email, password) {
+    if (typeof window.firebaseAuthSignUp !== 'function') {
+      throw new Error('Firebase Auth is not configured right now.');
+    }
+
+    try {
+      await window.firebaseAuthSignUp(email, password);
+    } catch (error) {
+      if (error && error.code === 'auth/email-already-in-use') {
+        throw new Error('An account with this email already exists. Please log in.');
+      }
+      if (error && error.code === 'auth/invalid-email') {
+        throw new Error('Please enter a valid email address.');
+      }
+      if (error && error.code === 'auth/weak-password') {
+        throw new Error('Password must be at least 6 characters long.');
+      }
+      throw new Error('Could not create account right now. Please try again.');
+    }
+  }
+
   function initSignup() {
     const form = document.getElementById('signupForm');
     if (!form) return;
@@ -591,6 +613,8 @@
       }
 
       try {
+        await createFirebaseAuthUser(email, password);
+
         if (db) {
           try {
             const existingRemoteUser = await findUserByEmail(email);
@@ -665,8 +689,8 @@
         setTimeout(() => {
           window.location.href = 'find-tutors.html';
         }, 800);
-      } catch {
-        setStatus(status, 'Could not create account right now. Please try again.', 'error');
+      } catch (error) {
+        setStatus(status, error.message || 'Could not create account right now. Please try again.', 'error');
       } finally {
         if (submitButton) submitButton.disabled = false;
       }
