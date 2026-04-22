@@ -66,6 +66,14 @@
             <label><input type="checkbox" name="workDays" value="Sunday" /> Sunday</label>
           </div>
         </fieldset>
+        <label for="signupQualificationProofFiles" class="upload-label">Qualification Proof (Drop files or upload)</label>
+        <div id="signupQualificationProofDropzone" class="file-dropzone" tabindex="0" role="button" aria-label="Drop qualification proof files here or click to upload">
+          <p><strong>Drop PDF/files here</strong> or click to upload.</p>
+          <p class="file-dropzone-hint">Accepted: PDF, DOC, DOCX, PNG, JPG (up to 5 files)</p>
+        </div>
+        <input id="signupQualificationProofFiles" name="qualificationProofFiles" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" multiple hidden />
+        <ul id="signupQualificationProofFileList" class="upload-file-list" aria-live="polite"></ul>
+        <textarea name="referral" placeholder="Referral (name + contact + why they vouch for you) if you don't have formal qualification"></textarea>
       </div>
 
       <button type="submit" class="btn primary">Create Account</button>
