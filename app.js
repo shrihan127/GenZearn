@@ -487,12 +487,12 @@
 
 
   async function createFirebaseAuthUser(email, password) {
-    if (typeof window.firebaseAuthSignUp !== 'function') {
+    if (!window.firebase || typeof window.firebase.auth !== 'function') {
       throw new Error('Firebase Auth is not configured right now.');
     }
 
     try {
-      await window.firebaseAuthSignUp(email, password);
+      await window.firebase.auth().createUserWithEmailAndPassword(email, password);
     } catch (error) {
       if (error && error.code === 'auth/email-already-in-use') {
         throw new Error('An account with this email already exists. Please log in.');
