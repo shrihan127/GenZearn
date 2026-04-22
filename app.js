@@ -387,6 +387,67 @@
     const studentFields = document.getElementById('studentSignupFields');
     const roleInputs = Array.from(form.querySelectorAll('input[name="role"]'));
     const tutorRequiredFields = ['subjects', 'qualifications', 'hourlyRate', 'paymentMethod', 'experience'];
+    const proofInput = form.elements.qualificationProofFiles;
+    const proofDropzone = document.getElementById('signupQualificationProofDropzone');
+    const proofFileList = document.getElementById('signupQualificationProofFileList');
+    let selectedProofFiles = [];
+
+    function renderProofFiles() {
+      if (!proofFileList) return;
+      proofFileList.innerHTML = '';
+      selectedProofFiles.forEach((file) => {
+        const item = document.createElement('li');
+        item.textContent = `${file.name} (${Math.max(1, Math.round(file.size / 1024))} KB)`;
+        proofFileList.appendChild(item);
+      });
+    }
+
+    function mergeProofFiles(incomingFiles) {
+      const unique = new Map(selectedProofFiles.map((file) => [`${file.name}-${file.size}-${file.lastModified}`, file]));
+      Array.from(incomingFiles).forEach((file) => {
+        const key = `${file.name}-${file.size}-${file.lastModified}`;
+        unique.set(key, file);
+      });
+      selectedProofFiles = Array.from(unique.values()).slice(0, 5);
+      renderProofFiles();
+    }
+
+    if (proofInput) {
+      proofInput.addEventListener('change', function () {
+        mergeProofFiles(proofInput.files || []);
+        proofInput.value = '';
+      });
+    }
+
+    if (proofDropzone && proofInput) {
+      proofDropzone.addEventListener('click', function () {
+        proofInput.click();
+      });
+
+      proofDropzone.addEventListener('keydown', function (event) {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        proofInput.click();
+      });
+
+      ['dragenter', 'dragover'].forEach((eventName) => {
+        proofDropzone.addEventListener(eventName, function (event) {
+          event.preventDefault();
+          proofDropzone.classList.add('active');
+        });
+      });
+
+      ['dragleave', 'drop'].forEach((eventName) => {
+        proofDropzone.addEventListener(eventName, function (event) {
+          event.preventDefault();
+          proofDropzone.classList.remove('active');
+        });
+      });
+
+      proofDropzone.addEventListener('drop', function (event) {
+        mergeProofFiles(event.dataTransfer?.files || []);
+      });
+    }
 
     function updateRoleUI() {
       const selectedRole = form.elements.role ? form.elements.role.value : 'student';
@@ -457,8 +518,12 @@
             experience: form.elements.experience.value.trim(),
             workDays: selectedWorkDays,
             availability: selectedWorkDays.length === 7 ? 'high' : 'low',
-            referral: '',
-            qualificationProofFiles: [],
+            qualificationProofFiles: selectedProofFiles.map((file) => ({
+              name: file.name,
+              size: file.size,
+              type: file.type || 'application/octet-stream'
+            })),
+            referral: form.elements.referral ? form.elements.referral.value.trim() : '',
             createdAt: new Date().toISOString()
           };
 
@@ -482,6 +547,11 @@
         }
 
         setCurrentUser({ name: user.name, email: user.email, role: user.role });
+
+        if (role === 'tutor') {
+          selectedProofFiles = [];
+          renderProofFiles();
+        }
 
         setStatus(status, 'Account created successfully! Redirecting to tutors...', 'success');
         setTimeout(() => {
