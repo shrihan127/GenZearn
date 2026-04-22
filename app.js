@@ -1,6 +1,5 @@
 (function () {
   const STORAGE_KEYS = {
-    users: 'genzearn_users',
     currentUser: 'genzearn_current_user',
     tutorApps: 'genzearn_tutor_applications',
     pendingTutorApps: 'genzearn_pending_tutor_applications',
@@ -8,10 +7,7 @@
     chatMessages: 'genzearn_chat_messages'
   };
 
-  const RESET_CODE_EXPIRY_MS = 10 * 60 * 1000;
-
   let db = null;
-  let activeResetCode = null;
 
   function hasUsableFirebaseConfig(config) {
     if (!config || typeof config !== 'object') return false;
@@ -73,51 +69,27 @@
     db = window.firebase.database();
   }
 
-  async function findUserByEmail(email) {
-    if (!db) return null;
+  async function getCurrentAuthUserProfile() {
+    if (!window.firebase || typeof window.firebase.auth !== 'function') return null;
+    const authUser = window.firebase.auth().currentUser;
+    if (!authUser) return null;
 
-    const normalizedEmail = String(email || '').trim().toLowerCase();
-    const userKey = getUserKeyFromEmail(normalizedEmail);
+    const fallbackProfile = {
+      name: authUser.displayName || authUser.email || 'User',
+      email: String(authUser.email || '').trim().toLowerCase(),
+      role: ''
+    };
 
-    const keyedSnapshot = await db.ref(`usersByEmail/${userKey}`).once('value');
-    if (keyedSnapshot.exists()) {
-      return { key: userKey, ...keyedSnapshot.val() };
-    }
+    if (!db) return fallbackProfile;
 
-    const snapshot = await db.ref('users').orderByChild('email').equalTo(normalizedEmail).limitToFirst(1).once('value');
-    const users = snapshot.val();
-    if (!users) return null;
-
-    const key = Object.keys(users)[0];
-    return { key, ...users[key] };
-  }
-
-  async function updateRemoteUserPassword(email, newPassword) {
-    if (!db) return;
-
-    const normalizedEmail = String(email || '').trim().toLowerCase();
-    const keyedRef = db.ref(`usersByEmail/${getUserKeyFromEmail(normalizedEmail)}/password`);
-
-    try {
-      await keyedRef.set(newPassword);
-    } catch {
-      const user = await findUserByEmail(normalizedEmail);
-      if (!user || !user.key) return;
-      await db.ref(`users/${user.key}/password`).set(newPassword);
-    }
-  }
-
-  async function createUserRecord(user) {
-    if (!db) return;
-
-    const normalizedEmail = String(user.email || '').trim().toLowerCase();
-    const userRecord = { ...user, email: normalizedEmail };
-    const userKey = getUserKeyFromEmail(normalizedEmail);
-
-    await Promise.all([
-      db.ref(`usersByEmail/${userKey}`).set(userRecord),
-      db.ref('users').push(userRecord)
-    ]);
+    const snapshot = await db.ref(`users/${authUser.uid}`).once('value');
+    if (!snapshot.exists()) return fallbackProfile;
+    const remoteProfile = snapshot.val() || {};
+    return {
+      name: remoteProfile.name || fallbackProfile.name,
+      email: String(remoteProfile.email || fallbackProfile.email).trim().toLowerCase(),
+      role: remoteProfile.role || ''
+    };
   }
 
   async function createTutorApplication(application) {
@@ -147,22 +119,6 @@
     }
 
     saveJson(STORAGE_KEYS.pendingTutorApps, stillPending);
-  }
-
-  function subscribeUsers(onUpdate) {
-    if (!db || typeof onUpdate !== 'function') return function () {};
-
-    const ref = db.ref('usersByEmail');
-    const handleValue = function (snapshot) {
-      const usersByEmail = snapshot.val() || {};
-      const users = Object.values(usersByEmail);
-      onUpdate(users);
-    };
-
-    ref.on('value', handleValue);
-    return function () {
-      ref.off('value', handleValue);
-    };
   }
 
   async function createSessionRequest(request) {
@@ -406,25 +362,6 @@
     }
   }
 
-  function findLocalUserByEmail(email) {
-    const users = loadJson(STORAGE_KEYS.users, []);
-    return users.find((u) => u.email === email) || null;
-  }
-
-  function updateLocalPassword(email, newPassword) {
-    const users = loadJson(STORAGE_KEYS.users, []);
-    const userIndex = users.findIndex((u) => u.email === email);
-    if (userIndex === -1) return false;
-
-    users[userIndex].password = newPassword;
-    saveJson(STORAGE_KEYS.users, users);
-    return true;
-  }
-
-  function createVerificationCode() {
-    return String(Math.floor(100000 + Math.random() * 900000));
-  }
-
   function updateAuthUI() {
     const nav = document.querySelector('.nav-links');
     if (!nav) return;
@@ -447,42 +384,6 @@
     } else {
       accountArea.innerHTML = '';
     }
-  }
-
-
-  function mergeUsersByEmail(existingUsers, incomingUsers) {
-    const usersByEmail = new Map();
-
-    existingUsers.forEach((user) => {
-      const email = String(user.email || '').trim().toLowerCase();
-      if (!email) return;
-      usersByEmail.set(email, { ...user, email });
-    });
-
-    incomingUsers.forEach((user) => {
-      const email = String(user.email || '').trim().toLowerCase();
-      if (!email) return;
-      const previous = usersByEmail.get(email) || {};
-      usersByEmail.set(email, { ...previous, ...user, email });
-    });
-
-    return Array.from(usersByEmail.values());
-  }
-
-  function initUserCloudSync() {
-    if (!db) return;
-
-    const localUsers = loadJson(STORAGE_KEYS.users, []);
-    localUsers.forEach((user) => {
-      createUserRecord(user).catch(function () {
-        // keep startup resilient if one local user cannot be synced yet
-      });
-    });
-
-    subscribeUsers(function (remoteUsers) {
-      const mergedUsers = mergeUsersByEmail(loadJson(STORAGE_KEYS.users, []), remoteUsers);
-      saveJson(STORAGE_KEYS.users, mergedUsers);
-    });
   }
 
 
@@ -671,6 +572,15 @@
       const password = form.elements.password.value;
 
       try {
+        if (!window.firebase || typeof window.firebase.auth !== 'function') {
+          setStatus(status, 'Login is unavailable until Firebase Auth is configured.', 'error');
+          return;
+        }
+        await window.firebase.auth().signInWithEmailAndPassword(email, password);
+        const user = await getCurrentAuthUserProfile();
+        if (!user) throw new Error('Could not load user profile.');
+        setCurrentUser({ name: user.name, email: user.email, role: user.role || '' });
+        setStatus(status, 'Logged in successfully! Redirecting...', 'success');
         const result = await auth.signInWithEmailAndPassword(email, password);
         const user = result && result.user ? result.user : null;
         const profile = user ? await findUserByEmail(user.email || email) : null;
@@ -685,6 +595,15 @@
           window.location.href = 'find-tutors.html';
         }, 800);
       } catch (error) {
+        if (error && error.code === 'auth/invalid-credential') {
+          setStatus(status, 'Invalid email or password. Try signing up first.', 'error');
+          return;
+        }
+        if (error && error.code === 'auth/too-many-requests') {
+          setStatus(status, 'Too many attempts. Please wait a moment and try again.', 'error');
+          return;
+        }
+        setStatus(status, 'Could not log in right now. Please try again.', 'error');
         let message = 'Could not log in.';
         if (error && error.code === 'auth/user-not-found') {
           message = 'No account found with this email.';
@@ -702,10 +621,9 @@
     const toggleBtn = document.getElementById('forgotPasswordBtn');
     const panel = document.getElementById('forgotPasswordPanel');
     const sendCodeForm = document.getElementById('sendCodeForm');
-    const resetPasswordForm = document.getElementById('resetPasswordForm');
     const status = document.getElementById('forgotPasswordStatus');
 
-    if (!toggleBtn || !panel || !sendCodeForm || !resetPasswordForm || !status) return;
+    if (!toggleBtn || !panel || !sendCodeForm || !status) return;
 
     toggleBtn.addEventListener('click', function () {
       panel.classList.toggle('hidden');
@@ -721,72 +639,25 @@
       }
 
       try {
-        const remoteUser = await findUserByEmail(email);
-        const localUser = findLocalUserByEmail(email);
-        if (!remoteUser && !localUser) {
+        if (!window.firebase || typeof window.firebase.auth !== 'function') {
+          setStatus(status, 'Password reset is unavailable until Firebase Auth is configured.', 'error');
+          return;
+        }
+        await window.firebase.auth().sendPasswordResetEmail(email);
+        setStatus(status, `Password reset link sent to ${email}. Please check your inbox.`, 'success');
+      } catch (error) {
+        if (error && error.code === 'auth/invalid-email') {
+          setStatus(status, 'Please enter a valid email address.', 'error');
+          return;
+        }
+        if (error && error.code === 'auth/user-not-found') {
           setStatus(status, 'No account exists for that email.', 'error');
           return;
         }
-
-        const code = createVerificationCode();
-        activeResetCode = {
-          email,
-          code,
-          expiresAt: Date.now() + RESET_CODE_EXPIRY_MS
-        };
-
-        resetPasswordForm.classList.remove('hidden');
-        setStatus(status, `Verification code sent to ${email}. (Demo code: ${code})`, 'success');
-      } catch {
-        setStatus(status, 'Could not send a verification code right now. Please try again.', 'error');
+        setStatus(status, 'Could not send a reset link right now. Please try again.', 'error');
       }
     });
 
-    resetPasswordForm.addEventListener('submit', async function (event) {
-      event.preventDefault();
-      const code = resetPasswordForm.elements.verificationCode.value.trim();
-      const newPassword = resetPasswordForm.elements.newPassword.value;
-      const confirmPassword = resetPasswordForm.elements.confirmPassword.value;
-
-      if (!activeResetCode) {
-        setStatus(status, 'Send a verification code first.', 'error');
-        return;
-      }
-
-      if (Date.now() > activeResetCode.expiresAt) {
-        activeResetCode = null;
-        setStatus(status, 'Verification code expired. Please request a new one.', 'error');
-        return;
-      }
-
-      if (code !== activeResetCode.code) {
-        setStatus(status, 'Incorrect verification code.', 'error');
-        return;
-      }
-
-      if (newPassword.length < 6) {
-        setStatus(status, 'Password must be at least 6 characters long.', 'error');
-        return;
-      }
-
-      if (newPassword !== confirmPassword) {
-        setStatus(status, 'Passwords do not match.', 'error');
-        return;
-      }
-
-      try {
-        updateLocalPassword(activeResetCode.email, newPassword);
-        await updateRemoteUserPassword(activeResetCode.email, newPassword);
-        activeResetCode = null;
-
-        sendCodeForm.reset();
-        resetPasswordForm.reset();
-        resetPasswordForm.classList.add('hidden');
-        setStatus(status, 'Password updated successfully. You can now log in.', 'success');
-      } catch {
-        setStatus(status, 'Could not reset password right now. Please try again.', 'error');
-      }
-    });
   }
 
   function initTutorApplication() {
@@ -1013,7 +884,6 @@
   document.addEventListener('DOMContentLoaded', function () {
     initFirebase();
     updateAuthUI();
-    initUserCloudSync();
     flushPendingTutorApplications();
     initSignup();
     initLogin();

@@ -36,13 +36,7 @@
     <div id="forgotPasswordPanel" class="forgot-password-panel hidden">
       <form id="sendCodeForm">
         <input type="email" name="resetEmail" placeholder="Enter your account email" required />
-        <button type="submit" class="btn primary">Send verification code</button>
-      </form>
-      <form id="resetPasswordForm" class="hidden">
-        <input type="text" name="verificationCode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="6-digit verification code" required />
-        <input type="password" name="newPassword" minlength="6" placeholder="New password" required />
-        <input type="password" name="confirmPassword" minlength="6" placeholder="Confirm new password" required />
-        <button type="submit" class="btn primary">Change password</button>
+        <button type="submit" class="btn primary">Send reset link</button>
       </form>
       <p id="forgotPasswordStatus" class="status-message" aria-live="polite"></p>
     </div>
