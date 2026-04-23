@@ -505,6 +505,11 @@
     }
 
     roleInputs.forEach((input) => input.addEventListener('change', updateRoleUI));
+    const requestedRole = new URLSearchParams(window.location.search).get('role');
+    if (requestedRole === 'tutor' || requestedRole === 'student') {
+      const matchingRoleInput = roleInputs.find((input) => input.value === requestedRole);
+      if (matchingRoleInput) matchingRoleInput.checked = true;
+    }
     updateRoleUI();
 
     const auth = firebase.auth();
@@ -556,7 +561,41 @@
           });
         }
 
-        setStatus(status, 'Account created successfully!', 'success');
+        if (role === 'tutor') {
+          const selectedWorkDays = Array.from(form.querySelectorAll('input[name="workDays"]:checked')).map((input) => input.value);
+          const paymentLinksValue = form.elements.paymentLinks
+            ? form.elements.paymentLinks.value.trim()
+            : '';
+          const tutorApplication = {
+            fullName: name,
+            email,
+            subjects: form.elements.subjects.value.trim(),
+            qualifications: form.elements.qualifications.value.trim(),
+            hourlyRate: Number(form.elements.hourlyRate.value),
+            paymentMethod: form.elements.paymentMethod.value.trim(),
+            paymentLinks: paymentLinksValue,
+            experience: form.elements.experience.value.trim(),
+            workDays: selectedWorkDays,
+            availability: selectedWorkDays.length === 7 ? 'high' : 'low',
+            qualificationProofFiles: selectedProofFiles.map((file) => ({
+              name: file.name,
+              size: file.size,
+              type: file.type || 'application/octet-stream'
+            })),
+            referral: form.elements.referral.value.trim(),
+            qualificationsVerified: true,
+            createdAt: new Date().toISOString()
+          };
+
+          try {
+            await createTutorApplication(tutorApplication);
+            await flushPendingTutorApplications();
+          } catch {
+            queueTutorApplicationForSync(tutorApplication);
+          }
+        }
+
+        setStatus(status, role === 'tutor' ? 'Account and tutor profile created successfully!' : 'Account created successfully!', 'success');
 
         setTimeout(() => {
           window.location.href = 'find-tutors.html';
