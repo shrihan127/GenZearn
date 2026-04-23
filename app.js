@@ -377,8 +377,15 @@
     if (current) {
       accountArea.innerHTML = `<span class="user-chip">Hi, ${current.name.split(' ')[0]}</span><button class="logout-btn" type="button">Logout</button>`;
       const logoutBtn = accountArea.querySelector('.logout-btn');
-      logoutBtn.addEventListener('click', function () {
+      logoutBtn.addEventListener('click', async function () {
         localStorage.removeItem(STORAGE_KEYS.currentUser);
+        if (window.firebase && typeof window.firebase.auth === 'function') {
+          try {
+            await window.firebase.auth().signOut();
+          } catch {
+            // Ignore sign-out errors and still clear the local session.
+          }
+        }
         window.location.href = 'index.html';
       });
     } else {
@@ -565,7 +572,6 @@
       return;
     }
 
-    const auth = window.firebase.auth();
     form.addEventListener('submit', async function (event) {
       event.preventDefault();
       const email = form.elements.email.value.trim().toLowerCase();
@@ -581,16 +587,6 @@
         if (!user) throw new Error('Could not load user profile.');
         setCurrentUser({ name: user.name, email: user.email, role: user.role || '' });
         setStatus(status, 'Logged in successfully! Redirecting...', 'success');
-        const result = await auth.signInWithEmailAndPassword(email, password);
-        const user = result && result.user ? result.user : null;
-        const profile = user ? await findUserByEmail(user.email || email) : null;
-
-        setCurrentUser({
-          name: (profile && profile.name) || (user && user.displayName) || '',
-          email: (user && user.email) || email,
-          role: (profile && profile.role) || ''
-        });
-        setStatus(status, 'Login successful!', 'success');
         setTimeout(() => {
           window.location.href = 'find-tutors.html';
         }, 800);
