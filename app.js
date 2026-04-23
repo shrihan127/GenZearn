@@ -82,14 +82,18 @@
 
     if (!db) return fallbackProfile;
 
-    const snapshot = await db.ref(`users/${authUser.uid}`).once('value');
-    if (!snapshot.exists()) return fallbackProfile;
-    const remoteProfile = snapshot.val() || {};
-    return {
-      name: remoteProfile.name || fallbackProfile.name,
-      email: String(remoteProfile.email || fallbackProfile.email).trim().toLowerCase(),
-      role: remoteProfile.role || ''
-    };
+    try {
+      const snapshot = await db.ref(`users/${authUser.uid}`).once('value');
+      if (!snapshot.exists()) return fallbackProfile;
+      const remoteProfile = snapshot.val() || {};
+      return {
+        name: remoteProfile.name || fallbackProfile.name,
+        email: String(remoteProfile.email || fallbackProfile.email).trim().toLowerCase(),
+        role: remoteProfile.role || ''
+      };
+    } catch {
+      return fallbackProfile;
+    }
   }
 
   async function createTutorApplication(application) {
@@ -576,18 +580,18 @@
           setStatus(status, 'Login is unavailable until Firebase Auth is configured.', 'error');
           return;
         }
-        await window.firebase.auth().signInWithEmailAndPassword(email, password);
-        const user = await getCurrentAuthUserProfile();
-        if (!user) throw new Error('Could not load user profile.');
-        setCurrentUser({ name: user.name, email: user.email, role: user.role || '' });
-        setStatus(status, 'Logged in successfully! Redirecting...', 'success');
         const result = await auth.signInWithEmailAndPassword(email, password);
-        const user = result && result.user ? result.user : null;
-        const profile = user ? await findUserByEmail(user.email || email) : null;
+        const signedInUser = result && result.user ? result.user : null;
+        const profile = await getCurrentAuthUserProfile();
+        const fallbackProfile = {
+          name: (signedInUser && (signedInUser.displayName || signedInUser.email)) || email,
+          email: (signedInUser && signedInUser.email) || email,
+          role: ''
+        };
 
         setCurrentUser({
-          name: (profile && profile.name) || (user && user.displayName) || '',
-          email: (user && user.email) || email,
+          name: (profile && profile.name) || fallbackProfile.name,
+          email: (profile && profile.email) || fallbackProfile.email,
           role: (profile && profile.role) || ''
         });
         setStatus(status, 'Login successful!', 'success');
