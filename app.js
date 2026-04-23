@@ -381,8 +381,15 @@
     if (current) {
       accountArea.innerHTML = `<span class="user-chip">Hi, ${current.name.split(' ')[0]}</span><button class="logout-btn" type="button">Logout</button>`;
       const logoutBtn = accountArea.querySelector('.logout-btn');
-      logoutBtn.addEventListener('click', function () {
+      logoutBtn.addEventListener('click', async function () {
         localStorage.removeItem(STORAGE_KEYS.currentUser);
+        if (window.firebase && typeof window.firebase.auth === 'function') {
+          try {
+            await window.firebase.auth().signOut();
+          } catch {
+            // Ignore sign-out errors and still clear the local session.
+          }
+        }
         window.location.href = 'index.html';
       });
     } else {
@@ -513,6 +520,21 @@
       const password = form.elements.password.value;
       const role = form.elements.role.value;
 
+      if (role === 'tutor') {
+        const selectedWorkDays = Array.from(form.querySelectorAll('input[name="workDays"]:checked')).map((input) => input.value);
+        const qualifications = form.elements.qualifications.value.trim();
+
+        if (!hasValidQualifications(qualifications)) {
+          setStatus(status, 'Please enter valid qualifications (degree, certification, or teaching license).', 'error');
+          return;
+        }
+
+        if (!selectedWorkDays.length) {
+          setStatus(status, 'Please choose at least one work day from Monday to Sunday.', 'error');
+          return;
+        }
+      }
+
       submitButton.disabled = true;
 
       try {
@@ -569,7 +591,6 @@
       return;
     }
 
-    const auth = window.firebase.auth();
     form.addEventListener('submit', async function (event) {
       event.preventDefault();
       const email = form.elements.email.value.trim().toLowerCase();
@@ -580,21 +601,11 @@
           setStatus(status, 'Login is unavailable until Firebase Auth is configured.', 'error');
           return;
         }
-        const result = await auth.signInWithEmailAndPassword(email, password);
-        const signedInUser = result && result.user ? result.user : null;
-        const profile = await getCurrentAuthUserProfile();
-        const fallbackProfile = {
-          name: (signedInUser && (signedInUser.displayName || signedInUser.email)) || email,
-          email: (signedInUser && signedInUser.email) || email,
-          role: ''
-        };
-
-        setCurrentUser({
-          name: (profile && profile.name) || fallbackProfile.name,
-          email: (profile && profile.email) || fallbackProfile.email,
-          role: (profile && profile.role) || ''
-        });
-        setStatus(status, 'Login successful!', 'success');
+        await window.firebase.auth().signInWithEmailAndPassword(email, password);
+        const user = await getCurrentAuthUserProfile();
+        if (!user) throw new Error('Could not load user profile.');
+        setCurrentUser({ name: user.name, email: user.email, role: user.role || '' });
+        setStatus(status, 'Logged in successfully! Redirecting...', 'success');
         setTimeout(() => {
           window.location.href = 'find-tutors.html';
         }, 800);
