@@ -82,14 +82,18 @@
 
     if (!db) return fallbackProfile;
 
-    const snapshot = await db.ref(`users/${authUser.uid}`).once('value');
-    if (!snapshot.exists()) return fallbackProfile;
-    const remoteProfile = snapshot.val() || {};
-    return {
-      name: remoteProfile.name || fallbackProfile.name,
-      email: String(remoteProfile.email || fallbackProfile.email).trim().toLowerCase(),
-      role: remoteProfile.role || ''
-    };
+    try {
+      const snapshot = await db.ref(`users/${authUser.uid}`).once('value');
+      if (!snapshot.exists()) return fallbackProfile;
+      const remoteProfile = snapshot.val() || {};
+      return {
+        name: remoteProfile.name || fallbackProfile.name,
+        email: String(remoteProfile.email || fallbackProfile.email).trim().toLowerCase(),
+        role: remoteProfile.role || ''
+      };
+    } catch {
+      return fallbackProfile;
+    }
   }
 
   async function createTutorApplication(application) {
