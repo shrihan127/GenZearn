@@ -509,6 +509,21 @@
       const password = form.elements.password.value;
       const role = form.elements.role.value;
 
+      if (role === 'tutor') {
+        const selectedWorkDays = Array.from(form.querySelectorAll('input[name="workDays"]:checked')).map((input) => input.value);
+        const qualifications = form.elements.qualifications.value.trim();
+
+        if (!hasValidQualifications(qualifications)) {
+          setStatus(status, 'Please enter valid qualifications (degree, certification, or teaching license).', 'error');
+          return;
+        }
+
+        if (!selectedWorkDays.length) {
+          setStatus(status, 'Please choose at least one work day from Monday to Sunday.', 'error');
+          return;
+        }
+      }
+
       submitButton.disabled = true;
 
       try {
