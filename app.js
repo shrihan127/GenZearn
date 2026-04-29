@@ -95,7 +95,10 @@
     if (!window.firebase.apps.length) {
       window.firebase.initializeApp(window.firebaseConfig);
     }
-    db = window.firebase.database();
+
+    window.auth = window.firebase.auth();
+    window.db = window.firebase.database();
+    db = window.db;
   }
 
   async function getCurrentAuthUserProfile() {
@@ -466,15 +469,6 @@
     await upsertUserRole(uid, profile.email, profile.role);
   }
 
-  async function signInWithGoogle() {
-    if (!window.firebase || typeof window.firebase.auth !== 'function') {
-      throw new Error('Firebase Auth is not configured right now.');
-    }
-
-    const provider = new window.firebase.auth.GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
-    return window.firebase.auth().signInWithPopup(provider);
-  }
 
   async function createFirebaseAuthUser(email, password) {
     if (!window.firebase || typeof window.firebase.auth !== 'function') {
@@ -590,8 +584,6 @@
     }
     updateRoleUI();
 
-    const auth = firebase.auth();
-
     form.addEventListener('submit', async function (event) {
       event.preventDefault();
 
@@ -626,7 +618,7 @@
 
         try {
           // 1. Create Firebase Auth user
-          result = await auth.createUserWithEmailAndPassword(email, password);
+          result = await firebase.auth().createUserWithEmailAndPassword(email, password);
           createdNewAuthUser = true;
         } catch (authError) {
           // If the user already exists and is applying as a tutor, reuse the existing account
@@ -635,7 +627,7 @@
             throw authError;
           }
 
-          result = await auth.signInWithEmailAndPassword(email, password);
+          result = await firebase.auth().signInWithEmailAndPassword(email, password);
         }
 
         // 2. Update display name for newly created users.
@@ -734,7 +726,9 @@
         googleSignupBtn.disabled = true;
         submitButton.disabled = true;
         try {
-          const result = await signInWithGoogle();
+          const provider = new firebase.auth.GoogleAuthProvider();
+          provider.setCustomParameters({ prompt: 'select_account' });
+          const result = await firebase.auth().signInWithPopup(provider);
           const googleUser = result.user;
           const name = nameFromForm || googleUser.displayName || 'User';
           const email = String(googleUser.email || '').trim().toLowerCase();
@@ -807,7 +801,9 @@
       googleLoginBtn.addEventListener('click', async function () {
         googleLoginBtn.disabled = true;
         try {
-          const result = await signInWithGoogle();
+          const provider = new firebase.auth.GoogleAuthProvider();
+          provider.setCustomParameters({ prompt: 'select_account' });
+          const result = await firebase.auth().signInWithPopup(provider);
           const profile = await getCurrentAuthUserProfile();
           const name = profile?.name || result.user.displayName || result.user.email || 'User';
           const email = String(profile?.email || result.user.email || '').trim().toLowerCase();
