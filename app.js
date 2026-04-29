@@ -53,6 +53,12 @@
       .replace(/[^a-z0-9]/g, '_');
   }
 
+  async function upsertUserRole(email, role) {
+    if (!db || !email || !role) return;
+    const userKey = getUserKeyFromEmail(email);
+    await db.ref(`userRoles/${userKey}/${role}`).set(true);
+  }
+
   function buildGmailComposeLink(email) {
     if (!email) return '';
     const normalizedEmail = String(email).trim().toLowerCase();
@@ -543,22 +549,50 @@
       submitButton.disabled = true;
 
       try {
-        // 1. Create Firebase Auth user
-        const result = await auth.createUserWithEmailAndPassword(email, password);
+        let result;
+        let createdNewAuthUser = false;
+        let signedInTemporarily = false;
 
-        // 2. Update display name
-        await result.user.updateProfile({
-          displayName: name
-        });
+        try {
+          // 1. Create Firebase Auth user
+          result = await auth.createUserWithEmailAndPassword(email, password);
+          createdNewAuthUser = true;
+        } catch (authError) {
+          // If the user already exists and is applying as a tutor, reuse the existing account
+          // so one email can have both student and tutor roles.
+          if (!(role === 'tutor' && authError && authError.code === 'auth/email-already-in-use')) {
+            throw authError;
+          }
+
+          result = await auth.signInWithEmailAndPassword(email, password);
+          signedInTemporarily = true;
+        }
+
+        // 2. Update display name for newly created users.
+        if (createdNewAuthUser) {
+          await result.user.updateProfile({
+            displayName: name
+          });
+        }
 
         // 3. Store extra user data in Realtime Database (optional)
         if (firebase.database) {
-          await firebase.database().ref('users/' + result.user.uid).set({
-            name,
+          const userRef = firebase.database().ref('users/' + result.user.uid);
+          const userSnapshot = await userRef.once('value');
+          const existingUser = userSnapshot.exists() ? userSnapshot.val() || {} : {};
+          const mergedRoles = Array.isArray(existingUser.roles) ? existingUser.roles.slice() : [];
+          if (!mergedRoles.includes(role)) mergedRoles.push(role);
+
+          await userRef.set({
+            name: existingUser.name || name,
             email,
-            role,
-            createdAt: new Date().toISOString()
+            role: role,
+            roles: mergedRoles,
+            createdAt: existingUser.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString()
           });
+
+          await upsertUserRole(email, role);
         }
 
         if (role === 'tutor') {
@@ -595,7 +629,11 @@
           }
         }
 
-        setStatus(status, role === 'tutor' ? 'Account and tutor profile created successfully!' : 'Account created successfully!', 'success');
+        if (signedInTemporarily) {
+          await auth.signOut();
+        }
+
+        setStatus(status, role === 'tutor' ? 'Tutor profile created successfully. You can now log in as either a student or tutor.' : 'Account created successfully!', 'success');
 
         setTimeout(() => {
           window.location.href = 'find-tutors.html';
@@ -606,7 +644,9 @@
         let message = 'Could not create account.';
 
         if (error.code === 'auth/email-already-in-use') {
-          message = 'This email is already registered. Please log in.';
+          message = role === 'tutor'
+            ? 'This email already exists. Enter the same password to add your tutor profile.'
+            : 'This email is already registered. Please log in.';
         } else if (error.code === 'auth/invalid-email') {
           message = 'Invalid email address.';
         } else if (error.code === 'auth/weak-password') {
