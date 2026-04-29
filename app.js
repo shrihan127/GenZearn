@@ -445,9 +445,24 @@
 
     const roleRef = window.firebase.database().ref('userRoles/' + userKey);
     const roleSnapshot = await roleRef.once('value');
-    const existingRoles = roleSnapshot.exists() && roleSnapshot.val() && roleSnapshot.val().roles
-      ? roleSnapshot.val().roles
-      : {};
+    const existingData = roleSnapshot.exists() ? roleSnapshot.val() : null;
+
+    const existingRoles = {};
+    if (existingData && Array.isArray(existingData.roles)) {
+      existingData.roles.filter(Boolean).forEach(function (existingRole) {
+        existingRoles[String(existingRole).trim()] = true;
+      });
+    } else if (existingData && existingData.roles && typeof existingData.roles === 'object') {
+      Object.keys(existingData.roles).forEach(function (existingRole) {
+        if (existingData.roles[existingRole]) {
+          existingRoles[String(existingRole).trim()] = true;
+        }
+      });
+    }
+    if (existingData && existingData.role) {
+      existingRoles[String(existingData.role).trim()] = true;
+    }
+
     const normalizedRole = String(role || '').trim();
     const roleFlags = Object.assign({}, existingRoles);
     if (normalizedRole) {
