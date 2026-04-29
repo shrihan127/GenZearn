@@ -27,7 +27,7 @@ export async function saveUserAccount(db, account) {
   }
 
   const userRef = doc(db, 'users', user.uid);
-  const roles = Array.isArray(account.roles) && account.roles.length ? account.roles : ['student'];
+  const roles = ['student', 'tutor'];
 
   await setDoc(
     userRef,
