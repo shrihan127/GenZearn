@@ -440,22 +440,28 @@
     if (!userKey) return;
 
     const roleRef = window.firebase.database().ref('userRoles/' + userKey);
-    const existingSnapshot = await roleRef.once('value');
-    const existingData = existingSnapshot.exists() ? existingSnapshot.val() : {};
-    const existingRoles = Array.isArray(existingData.roles) ? existingData.roles : [];
-    const normalizedRoles = Array.from(new Set([...existingRoles, role].filter(Boolean)));
+    const roleSnapshot = await roleRef.once('value');
+    const existingRoles = roleSnapshot.exists() && roleSnapshot.val() && roleSnapshot.val().roles
+      ? roleSnapshot.val().roles
+      : {};
+    const normalizedRole = String(role || '').trim();
+    const roleFlags = Object.assign({}, existingRoles);
+    if (normalizedRole) {
+      roleFlags[normalizedRole] = true;
+    }
 
     await roleRef.set({
       uid,
       email: String(email || '').trim().toLowerCase(),
-      roles: normalizedRoles
+      role: normalizedRole,
+      roles: roleFlags
     });
   }
 
-  async function upsertUserProfile(uid, profile) {
-    if (!window.firebase || !window.firebase.database || !uid) return;
+  async function upsertUserProfile(user, profile) {
+    if (!window.firebase || !window.firebase.database || !user || !user.uid || !profile) return;
 
-    const userRef = window.firebase.database().ref('users/' + uid);
+    const userRef = window.firebase.database().ref('users/' + user.uid);
     const snapshot = await userRef.once('value');
     const existingUser = snapshot.exists() ? snapshot.val() : null;
 
@@ -471,7 +477,7 @@
       createdAt: (existingUser && existingUser.createdAt) || profile.createdAt || new Date().toISOString()
     });
 
-    await upsertUserRole(uid, profile.email, profile.role);
+    await upsertUserRole(user.uid, profile.email, profile.role);
   }
 
 
@@ -622,17 +628,15 @@
         let createdNewAuthUser = false;
 
         try {
-          // 1. Create Firebase Auth user
           result = await firebase.auth().createUserWithEmailAndPassword(email, password);
           createdNewAuthUser = true;
         } catch (authError) {
-          // If the user already exists and is applying as a tutor, reuse the existing account
-          // so one email can have both student and tutor roles.
-          if (!(role === 'tutor' && authError && authError.code === 'auth/email-already-in-use')) {
+          if (authError.code === 'auth/email-already-in-use') {
+            result = await firebase.auth().signInWithEmailAndPassword(email, password);
+            createdNewAuthUser = false;
+          } else {
             throw authError;
           }
-
-          result = await firebase.auth().signInWithEmailAndPassword(email, password);
         }
 
         // 2. Update display name for newly created users.
@@ -737,7 +741,7 @@
           const name = nameFromForm || googleUser.displayName || 'User';
           const email = String(googleUser.email || '').trim().toLowerCase();
 
-          await upsertUserProfile(googleUser.uid, {
+          await upsertUserProfile(googleUser, {
             name,
             email,
             role,
@@ -811,7 +815,8 @@
           const profile = await getCurrentAuthUserProfile();
           const name = profile?.name || result.user.displayName || result.user.email || 'User';
           const email = String(profile?.email || result.user.email || '').trim().toLowerCase();
-          const role = profile?.role || (Array.isArray(profile?.roles) ? profile.roles[profile.roles.length - 1] || '' : '');
+          const role = profile?.role || '';
+          await upsertUserProfile(result.user, { name, email, role });
           setCurrentUser({ name, email, role });
           setStatus(status, 'Logged in with Google! Redirecting...', 'success');
           setTimeout(() => { window.location.href = 'find-tutors.html'; }, 800);
@@ -834,11 +839,17 @@
           setStatus(status, 'Login is unavailable until Firebase Auth is configured.', 'error');
           return;
         }
-        await window.firebase.auth().signInWithEmailAndPassword(email, password);
+        const result = await window.firebase.auth().signInWithEmailAndPassword(email, password);
         const user = await getCurrentAuthUserProfile();
         if (!user) throw new Error('Could not load user profile.');
         const role = user.role || (Array.isArray(user.roles) ? user.roles[user.roles.length - 1] || '' : '');
         setCurrentUser({ name: user.name, email: user.email, role });
+        await upsertUserProfile(result.user, {
+          name: user.name,
+          email: user.email,
+          role: user.role || ''
+        });
+        setCurrentUser({ name: user.name, email: user.email, role: user.role || '' });
         setStatus(status, 'Logged in successfully! Redirecting...', 'success');
         setTimeout(() => {
           window.location.href = 'find-tutors.html';
