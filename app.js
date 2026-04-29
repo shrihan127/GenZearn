@@ -46,21 +46,6 @@
   }
 
 
-  function getUserKeyFromEmail(email) {
-    const normalizedEmail = String(email || '').trim().toLowerCase();
-    if (!normalizedEmail) return '';
-
-    const utf8Email = unescape(encodeURIComponent(normalizedEmail));
-    const encoded = btoa(utf8Email);
-    return encoded.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
-  }
-
-  async function upsertUserRole(email, role) {
-    if (!db || !email || !role) return;
-    const userKey = getUserKeyFromEmail(email);
-    await db.ref(`userRoles/${userKey}/${role}`).set(true);
-  }
-
   async function upsertUserProfile(user, profile) {
     if (!firebase.database || !user || !profile) return;
 
@@ -437,46 +422,6 @@
 
 
 
-  async function upsertUserRole(uid, email, role) {
-    if (!window.firebase || !window.firebase.database || !uid) return;
-
-    const userKey = getUserKeyFromEmail(email);
-    if (!userKey) return;
-
-    const roleRef = window.firebase.database().ref('userRoles/' + userKey);
-    const roleSnapshot = await roleRef.once('value');
-    const existingData = roleSnapshot.exists() ? roleSnapshot.val() : null;
-
-    const existingRoles = {};
-    if (existingData && Array.isArray(existingData.roles)) {
-      existingData.roles.filter(Boolean).forEach(function (existingRole) {
-        existingRoles[String(existingRole).trim()] = true;
-      });
-    } else if (existingData && existingData.roles && typeof existingData.roles === 'object') {
-      Object.keys(existingData.roles).forEach(function (existingRole) {
-        if (existingData.roles[existingRole]) {
-          existingRoles[String(existingRole).trim()] = true;
-        }
-      });
-    }
-    if (existingData && existingData.role) {
-      existingRoles[String(existingData.role).trim()] = true;
-    }
-
-    const normalizedRole = String(role || '').trim();
-    const roleFlags = Object.assign({}, existingRoles);
-    if (normalizedRole) {
-      roleFlags[normalizedRole] = true;
-    }
-
-    await roleRef.set({
-      uid,
-      email: String(email || '').trim().toLowerCase(),
-      role: normalizedRole,
-      roles: roleFlags
-    });
-  }
-
   async function upsertUserProfile(user, profile) {
     if (!window.firebase || !window.firebase.database || !user || !user.uid || !profile) return;
 
@@ -496,7 +441,6 @@
       createdAt: (existingUser && existingUser.createdAt) || profile.createdAt || new Date().toISOString()
     });
 
-    await upsertUserRole(user.uid, profile.email, profile.role);
   }
 
 
