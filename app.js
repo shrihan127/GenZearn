@@ -59,6 +59,27 @@
     await db.ref(`userRoles/${userKey}/${role}`).set(true);
   }
 
+  async function upsertUserProfile(user, profile) {
+    if (!firebase.database || !user || !profile) return;
+
+    const now = new Date().toISOString();
+    const userRef = firebase.database().ref('users/' + user.uid);
+    const userSnapshot = await userRef.once('value');
+    const existingUser = userSnapshot.exists() ? userSnapshot.val() || {} : {};
+
+    const roles = new Set(Array.isArray(existingUser.roles) ? existingUser.roles : []);
+    if (profile.role) roles.add(profile.role);
+
+    await userRef.set({
+      name: existingUser.name || profile.name || user.displayName || user.email || 'User',
+      email: profile.email || existingUser.email || String(user.email || '').toLowerCase(),
+      role: profile.role || existingUser.role || '',
+      roles: Array.from(roles),
+      createdAt: existingUser.createdAt || now,
+      updatedAt: now
+    });
+  }
+
   function buildGmailComposeLink(email) {
     if (!email) return '';
     const normalizedEmail = String(email).trim().toLowerCase();
@@ -551,7 +572,6 @@
       try {
         let result;
         let createdNewAuthUser = false;
-        let signedInTemporarily = false;
 
         try {
           // 1. Create Firebase Auth user
@@ -565,7 +585,6 @@
           }
 
           result = await auth.signInWithEmailAndPassword(email, password);
-          signedInTemporarily = true;
         }
 
         // 2. Update display name for newly created users.
@@ -577,21 +596,7 @@
 
         // 3. Store extra user data in Realtime Database (optional)
         if (firebase.database) {
-          const userRef = firebase.database().ref('users/' + result.user.uid);
-          const userSnapshot = await userRef.once('value');
-          const existingUser = userSnapshot.exists() ? userSnapshot.val() || {} : {};
-          const mergedRoles = Array.isArray(existingUser.roles) ? existingUser.roles.slice() : [];
-          if (!mergedRoles.includes(role)) mergedRoles.push(role);
-
-          await userRef.set({
-            name: existingUser.name || name,
-            email,
-            role: role,
-            roles: mergedRoles,
-            createdAt: existingUser.createdAt || new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          });
-
+          await upsertUserProfile(result.user, { name, email, role });
           await upsertUserRole(email, role);
         }
 
@@ -627,10 +632,6 @@
           } catch {
             queueTutorApplicationForSync(tutorApplication);
           }
-        }
-
-        if (signedInTemporarily) {
-          await auth.signOut();
         }
 
         setStatus(status, role === 'tutor' ? 'Tutor profile created successfully. You can now log in as either a student or tutor.' : 'Account created successfully!', 'success');
