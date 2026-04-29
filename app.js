@@ -425,6 +425,28 @@
   }
 
 
+
+
+  async function upsertUserProfile(uid, profile) {
+    if (!window.firebase || !window.firebase.database || !uid) return;
+    await window.firebase.database().ref('users/' + uid).set({
+      name: profile.name,
+      email: profile.email,
+      role: profile.role,
+      createdAt: profile.createdAt || new Date().toISOString()
+    });
+  }
+
+  async function signInWithGoogle() {
+    if (!window.firebase || typeof window.firebase.auth !== 'function') {
+      throw new Error('Firebase Auth is not configured right now.');
+    }
+
+    const provider = new window.firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    return window.firebase.auth().signInWithPopup(provider);
+  }
+
   async function createFirebaseAuthUser(email, password) {
     if (!window.firebase || typeof window.firebase.auth !== 'function') {
       throw new Error('Firebase Auth is not configured right now.');
@@ -659,6 +681,85 @@
         submitButton.disabled = false;
       }
     });
+
+
+    const googleSignupBtn = document.getElementById('googleSignupBtn');
+    if (googleSignupBtn) {
+      googleSignupBtn.addEventListener('click', async function () {
+        const role = form.elements.role.value;
+        const nameFromForm = form.elements.fullName.value.trim();
+
+        if (role === 'tutor') {
+          const selectedWorkDays = Array.from(form.querySelectorAll('input[name="workDays"]:checked')).map((input) => input.value);
+          const qualifications = form.elements.qualifications.value.trim();
+          if (!hasValidQualifications(qualifications)) {
+            setStatus(status, 'Please enter valid qualifications (degree, certification, or teaching license).', 'error');
+            return;
+          }
+          if (!selectedWorkDays.length) {
+            setStatus(status, 'Please choose at least one work day from Monday to Sunday.', 'error');
+            return;
+          }
+        }
+
+        googleSignupBtn.disabled = true;
+        submitButton.disabled = true;
+        try {
+          const result = await signInWithGoogle();
+          const googleUser = result.user;
+          const name = nameFromForm || googleUser.displayName || 'User';
+          const email = String(googleUser.email || '').trim().toLowerCase();
+
+          await upsertUserProfile(googleUser.uid, {
+            name,
+            email,
+            role,
+            createdAt: new Date().toISOString()
+          });
+
+          if (role === 'tutor') {
+            const selectedWorkDays = Array.from(form.querySelectorAll('input[name="workDays"]:checked')).map((input) => input.value);
+            const paymentLinksValue = form.elements.paymentLinks ? form.elements.paymentLinks.value.trim() : '';
+            const tutorApplication = {
+              fullName: name,
+              email,
+              subjects: form.elements.subjects.value.trim(),
+              qualifications: form.elements.qualifications.value.trim(),
+              hourlyRate: Number(form.elements.hourlyRate.value),
+              paymentMethod: form.elements.paymentMethod.value.trim(),
+              paymentLinks: paymentLinksValue,
+              experience: form.elements.experience.value.trim(),
+              workDays: selectedWorkDays,
+              availability: selectedWorkDays.length === 7 ? 'high' : 'low',
+              qualificationProofFiles: selectedProofFiles.map((file) => ({ name: file.name, size: file.size, type: file.type || 'application/octet-stream' })),
+              referral: form.elements.referral.value.trim(),
+              qualificationsVerified: true,
+              createdAt: new Date().toISOString()
+            };
+
+            try {
+              await createTutorApplication(tutorApplication);
+              await flushPendingTutorApplications();
+            } catch {
+              queueTutorApplicationForSync(tutorApplication);
+            }
+          }
+
+          setCurrentUser({ name, email, role });
+          setStatus(status, role === 'tutor' ? 'Google account connected and tutor profile created!' : 'Google account connected successfully!', 'success');
+          setTimeout(() => { window.location.href = 'find-tutors.html'; }, 800);
+        } catch (error) {
+          if (error && error.code === 'auth/popup-closed-by-user') {
+            setStatus(status, 'Google sign-in was cancelled.', 'error');
+          } else {
+            setStatus(status, 'Could not continue with Google right now. Please try again.', 'error');
+          }
+        } finally {
+          googleSignupBtn.disabled = false;
+          submitButton.disabled = false;
+        }
+      });
+    }
   }
 
   function initLogin() {
@@ -669,6 +770,32 @@
     if (!window.firebase || typeof window.firebase.auth !== 'function') {
       setStatus(status, 'Firebase Auth is not configured right now.', 'error');
       return;
+    }
+
+
+    const googleLoginBtn = document.getElementById('googleLoginBtn');
+    if (googleLoginBtn) {
+      googleLoginBtn.addEventListener('click', async function () {
+        googleLoginBtn.disabled = true;
+        try {
+          const result = await signInWithGoogle();
+          const profile = await getCurrentAuthUserProfile();
+          const name = profile?.name || result.user.displayName || result.user.email || 'User';
+          const email = String(profile?.email || result.user.email || '').trim().toLowerCase();
+          const role = profile?.role || '';
+          setCurrentUser({ name, email, role });
+          setStatus(status, 'Logged in with Google! Redirecting...', 'success');
+          setTimeout(() => { window.location.href = 'find-tutors.html'; }, 800);
+        } catch (error) {
+          if (error && error.code === 'auth/popup-closed-by-user') {
+            setStatus(status, 'Google sign-in was cancelled.', 'error');
+            return;
+          }
+          setStatus(status, 'Could not log in with Google right now. Please try again.', 'error');
+        } finally {
+          googleLoginBtn.disabled = false;
+        }
+      });
     }
 
     form.addEventListener('submit', async function (event) {
