@@ -439,17 +439,29 @@
     const userKey = getUserKeyFromEmail(email);
     if (!userKey) return;
 
-    await window.firebase.database().ref('userRoles/' + userKey).set({
+    const roleRef = window.firebase.database().ref('userRoles/' + userKey);
+    const roleSnapshot = await roleRef.once('value');
+    const existingRoles = roleSnapshot.exists() && roleSnapshot.val() && roleSnapshot.val().roles
+      ? roleSnapshot.val().roles
+      : {};
+    const normalizedRole = String(role || '').trim();
+    const roleFlags = Object.assign({}, existingRoles);
+    if (normalizedRole) {
+      roleFlags[normalizedRole] = true;
+    }
+
+    await roleRef.set({
       uid,
       email: String(email || '').trim().toLowerCase(),
-      role
+      role: normalizedRole,
+      roles: roleFlags
     });
   }
 
-  async function upsertUserProfile(uid, profile) {
-    if (!window.firebase || !window.firebase.database || !uid) return;
+  async function upsertUserProfile(user, profile) {
+    if (!window.firebase || !window.firebase.database || !user || !user.uid || !profile) return;
 
-    const userRef = window.firebase.database().ref('users/' + uid);
+    const userRef = window.firebase.database().ref('users/' + user.uid);
     const snapshot = await userRef.once('value');
     const existingUser = snapshot.exists() ? snapshot.val() : null;
 
@@ -466,7 +478,7 @@
       createdAt: (existingUser && existingUser.createdAt) || profile.createdAt || new Date().toISOString()
     });
 
-    await upsertUserRole(uid, profile.email, profile.role);
+    await upsertUserRole(user.uid, profile.email, profile.role);
   }
 
 
@@ -640,7 +652,6 @@
         // 3. Store extra user data in Realtime Database (optional)
         if (firebase.database) {
           await upsertUserProfile(result.user, { name, email, role });
-          await upsertUserRole(email, role);
         }
 
         if (role === 'tutor') {
@@ -733,7 +744,7 @@
           const name = nameFromForm || googleUser.displayName || 'User';
           const email = String(googleUser.email || '').trim().toLowerCase();
 
-          await upsertUserProfile(googleUser.uid, {
+          await upsertUserProfile(googleUser, {
             name,
             email,
             role,
@@ -808,6 +819,7 @@
           const name = profile?.name || result.user.displayName || result.user.email || 'User';
           const email = String(profile?.email || result.user.email || '').trim().toLowerCase();
           const role = profile?.role || '';
+          await upsertUserProfile(result.user, { name, email, role });
           setCurrentUser({ name, email, role });
           setStatus(status, 'Logged in with Google! Redirecting...', 'success');
           setTimeout(() => { window.location.href = 'find-tutors.html'; }, 800);
@@ -830,9 +842,14 @@
           setStatus(status, 'Login is unavailable until Firebase Auth is configured.', 'error');
           return;
         }
-        await window.firebase.auth().signInWithEmailAndPassword(email, password);
+        const result = await window.firebase.auth().signInWithEmailAndPassword(email, password);
         const user = await getCurrentAuthUserProfile();
         if (!user) throw new Error('Could not load user profile.');
+        await upsertUserProfile(result.user, {
+          name: user.name,
+          email: user.email,
+          role: user.role || ''
+        });
         setCurrentUser({ name: user.name, email: user.email, role: user.role || '' });
         setStatus(status, 'Logged in successfully! Redirecting...', 'success');
         setTimeout(() => {
