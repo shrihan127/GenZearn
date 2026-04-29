@@ -819,7 +819,7 @@
           const profile = await getCurrentAuthUserProfile();
           const name = profile?.name || result.user.displayName || result.user.email || 'User';
           const email = String(profile?.email || result.user.email || '').trim().toLowerCase();
-          const role = profile?.role || '';
+          const role = profile?.role || (Array.isArray(profile?.roles) ? profile.roles[profile.roles.length - 1] || '' : '');
           await upsertUserProfile(result.user, { name, email, role });
           setCurrentUser({ name, email, role });
           setStatus(status, 'Logged in with Google! Redirecting...', 'success');
@@ -847,13 +847,12 @@
         const user = await getCurrentAuthUserProfile();
         if (!user) throw new Error('Could not load user profile.');
         const role = user.role || (Array.isArray(user.roles) ? user.roles[user.roles.length - 1] || '' : '');
-        setCurrentUser({ name: user.name, email: user.email, role });
         await upsertUserProfile(result.user, {
           name: user.name,
           email: user.email,
-          role: user.role || ''
+          role
         });
-        setCurrentUser({ name: user.name, email: user.email, role: user.role || '' });
+        setCurrentUser({ name: user.name, email: user.email, role });
         setStatus(status, 'Logged in successfully! Redirecting...', 'success');
         setTimeout(() => {
           window.location.href = 'find-tutors.html';
