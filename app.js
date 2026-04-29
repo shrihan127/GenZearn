@@ -617,17 +617,15 @@
         let createdNewAuthUser = false;
 
         try {
-          // 1. Create Firebase Auth user
           result = await firebase.auth().createUserWithEmailAndPassword(email, password);
           createdNewAuthUser = true;
         } catch (authError) {
-          // If the user already exists and is applying as a tutor, reuse the existing account
-          // so one email can have both student and tutor roles.
-          if (!(role === 'tutor' && authError && authError.code === 'auth/email-already-in-use')) {
+          if (authError.code === 'auth/email-already-in-use') {
+            result = await firebase.auth().signInWithEmailAndPassword(email, password);
+            createdNewAuthUser = false;
+          } else {
             throw authError;
           }
-
-          result = await firebase.auth().signInWithEmailAndPassword(email, password);
         }
 
         // 2. Update display name for newly created users.
