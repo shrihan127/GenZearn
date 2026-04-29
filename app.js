@@ -109,7 +109,8 @@
     const fallbackProfile = {
       name: authUser.displayName || authUser.email || 'User',
       email: String(authUser.email || '').trim().toLowerCase(),
-      role: ''
+      role: '',
+      roles: []
     };
 
     if (!db) return fallbackProfile;
@@ -118,10 +119,13 @@
       const snapshot = await db.ref(`users/${authUser.uid}`).once('value');
       if (!snapshot.exists()) return fallbackProfile;
       const remoteProfile = snapshot.val() || {};
+      const remoteRoles = Array.isArray(remoteProfile.roles) ? remoteProfile.roles : [];
+      const resolvedRole = remoteProfile.role || remoteRoles[remoteRoles.length - 1] || '';
       return {
         name: remoteProfile.name || fallbackProfile.name,
         email: String(remoteProfile.email || fallbackProfile.email).trim().toLowerCase(),
-        role: remoteProfile.role || ''
+        role: resolvedRole,
+        roles: remoteRoles
       };
     } catch {
       return fallbackProfile;
