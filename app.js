@@ -473,7 +473,6 @@
     await userRef.set({
       name: profile.name,
       email: profile.email,
-      role: profile.role,
       roles: mergedRoles,
       createdAt: (existingUser && existingUser.createdAt) || profile.createdAt || new Date().toISOString()
     });
@@ -843,6 +842,8 @@
         const result = await window.firebase.auth().signInWithEmailAndPassword(email, password);
         const user = await getCurrentAuthUserProfile();
         if (!user) throw new Error('Could not load user profile.');
+        const role = user.role || (Array.isArray(user.roles) ? user.roles[user.roles.length - 1] || '' : '');
+        setCurrentUser({ name: user.name, email: user.email, role });
         await upsertUserProfile(result.user, {
           name: user.name,
           email: user.email,
