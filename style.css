@@ -772,3 +772,5 @@ footer {
   padding: 12px;
   margin: 0;
 }
+
+.auth-divider { text-align:center; margin: 0.5rem 0; color:#666; font-size:0.95rem; }
