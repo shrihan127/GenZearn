@@ -379,7 +379,7 @@
     }
 
     if (current) {
-      accountArea.innerHTML = `<span class="user-chip">Hi, ${current.name.split(' ')[0]}</span><button class="logout-btn" type="button">Logout</button>`;
+      accountArea.innerHTML = `<span class="user-chip">${current.name.split(' ')[0]}</span><button class="logout-btn" type="button">Logout</button>`;
       const logoutBtn = accountArea.querySelector('.logout-btn');
       logoutBtn.addEventListener('click', async function () {
         localStorage.removeItem(STORAGE_KEYS.currentUser);
