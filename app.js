@@ -47,10 +47,12 @@
 
 
   function getUserKeyFromEmail(email) {
-    return String(email || '')
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, '_');
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    if (!normalizedEmail) return '';
+
+    const utf8Email = unescape(encodeURIComponent(normalizedEmail));
+    const encoded = btoa(utf8Email);
+    return encoded.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
   }
 
   function buildGmailComposeLink(email) {
@@ -400,6 +402,20 @@
 
 
 
+
+  async function upsertUserRole(uid, email, role) {
+    if (!window.firebase || !window.firebase.database || !uid) return;
+
+    const userKey = getUserKeyFromEmail(email);
+    if (!userKey) return;
+
+    await window.firebase.database().ref('userRoles/' + userKey).set({
+      uid,
+      email: String(email || '').trim().toLowerCase(),
+      role
+    });
+  }
+
   async function upsertUserProfile(uid, profile) {
     if (!window.firebase || !window.firebase.database || !uid) return;
     await window.firebase.database().ref('users/' + uid).set({
@@ -408,6 +424,8 @@
       role: profile.role,
       createdAt: profile.createdAt || new Date().toISOString()
     });
+
+    await upsertUserRole(uid, profile.email, profile.role);
   }
 
   async function signInWithGoogle() {
