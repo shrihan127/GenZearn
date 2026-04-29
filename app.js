@@ -812,11 +812,8 @@
           setStatus(status, 'Logged in with Google! Redirecting...', 'success');
           setTimeout(() => { window.location.href = 'find-tutors.html'; }, 800);
         } catch (error) {
-          if (error && error.code === 'auth/popup-closed-by-user') {
-            setStatus(status, 'Google sign-in was cancelled.', 'error');
-            return;
-          }
-          setStatus(status, 'Could not log in with Google right now. Please try again.', 'error');
+          console.log('GOOGLE ERROR:', error.code, error.message);
+          setStatus(status, error.code + ' - ' + error.message, 'error');
         } finally {
           googleLoginBtn.disabled = false;
         }
