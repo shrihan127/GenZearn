@@ -439,10 +439,16 @@
     const userKey = getUserKeyFromEmail(email);
     if (!userKey) return;
 
-    await window.firebase.database().ref('userRoles/' + userKey).set({
+    const roleRef = window.firebase.database().ref('userRoles/' + userKey);
+    const existingSnapshot = await roleRef.once('value');
+    const existingData = existingSnapshot.exists() ? existingSnapshot.val() : {};
+    const existingRoles = Array.isArray(existingData.roles) ? existingData.roles : [];
+    const normalizedRoles = Array.from(new Set([...existingRoles, role].filter(Boolean)));
+
+    await roleRef.set({
       uid,
       email: String(email || '').trim().toLowerCase(),
-      role
+      roles: normalizedRoles
     });
   }
 
@@ -461,7 +467,6 @@
     await userRef.set({
       name: profile.name,
       email: profile.email,
-      role: profile.role,
       roles: mergedRoles,
       createdAt: (existingUser && existingUser.createdAt) || profile.createdAt || new Date().toISOString()
     });
@@ -640,7 +645,6 @@
         // 3. Store extra user data in Realtime Database (optional)
         if (firebase.database) {
           await upsertUserProfile(result.user, { name, email, role });
-          await upsertUserRole(email, role);
         }
 
         if (role === 'tutor') {
@@ -807,7 +811,7 @@
           const profile = await getCurrentAuthUserProfile();
           const name = profile?.name || result.user.displayName || result.user.email || 'User';
           const email = String(profile?.email || result.user.email || '').trim().toLowerCase();
-          const role = profile?.role || '';
+          const role = profile?.role || (Array.isArray(profile?.roles) ? profile.roles[profile.roles.length - 1] || '' : '');
           setCurrentUser({ name, email, role });
           setStatus(status, 'Logged in with Google! Redirecting...', 'success');
           setTimeout(() => { window.location.href = 'find-tutors.html'; }, 800);
@@ -833,7 +837,8 @@
         await window.firebase.auth().signInWithEmailAndPassword(email, password);
         const user = await getCurrentAuthUserProfile();
         if (!user) throw new Error('Could not load user profile.');
-        setCurrentUser({ name: user.name, email: user.email, role: user.role || '' });
+        const role = user.role || (Array.isArray(user.roles) ? user.roles[user.roles.length - 1] || '' : '');
+        setCurrentUser({ name: user.name, email: user.email, role });
         setStatus(status, 'Logged in successfully! Redirecting...', 'success');
         setTimeout(() => {
           window.location.href = 'find-tutors.html';
