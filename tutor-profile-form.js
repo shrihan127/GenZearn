@@ -1,21 +1,20 @@
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { db } from './firebase.js';
 
 /**
- * Creates a tutor profile document in Firestore.
- *
- * @param {{
- *  name: string,
- *  subjects: string,
- *  bio: string,
- *  hourlyRate: number,
- *  email: string,
- *  profileImageURL: string
- * }} tutorData
- * @returns {Promise<string>} Firestore document id.
+ * Creates or updates tutor data inside users/{uid}.tutorProfile
+ * and ensures the tutor role exists.
  */
-export async function createTutorProfile(tutorData) {
-  const requiredFields = ['name', 'subjects', 'bio', 'hourlyRate', 'email', 'profileImageURL'];
+export async function saveTutorProfile(tutorData) {
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  if (!user) {
+    throw new Error('User must be authenticated to create a tutor profile.');
+  }
+
+  const requiredFields = ['subjects', 'qualifications', 'hourlyRate', 'availability'];
 
   for (const field of requiredFields) {
     const value = tutorData[field];
@@ -29,25 +28,22 @@ export async function createTutorProfile(tutorData) {
     throw new Error('Hourly rate must be a valid positive number.');
   }
 
-  const data = {
-    name: String(tutorData.name).trim(),
-    subjects: String(tutorData.subjects).trim(),
-    bio: String(tutorData.bio).trim(),
-    hourlyRate,
-    email: String(tutorData.email).trim(),
-    profileImageURL: String(tutorData.profileImageURL).trim(),
-    createdAt: serverTimestamp()
-  };
+  const userRef = doc(db, 'users', user.uid);
+  await setDoc(userRef, {
+    roles: ['student', 'tutor'],
+    tutorProfile: {
+      subjects: String(tutorData.subjects).trim(),
+      qualifications: String(tutorData.qualifications).trim(),
+      hourlyRate,
+      availability: String(tutorData.availability).trim(),
+      bio: String(tutorData.bio || '').trim()
+    },
+    updatedAt: serverTimestamp()
+  }, { merge: true });
 
-  const docRef = await addDoc(collection(db, 'tutors'), data);
-  return docRef.id;
+  return user.uid;
 }
 
-/**
- * Handles tutor profile form submission.
- *
- * @param {SubmitEvent} event
- */
 export async function handleTutorFormSubmit(event) {
   event.preventDefault();
 
@@ -57,22 +53,22 @@ export async function handleTutorFormSubmit(event) {
   }
 
   const formData = new FormData(form);
+  const workDays = formData.getAll('workDays').map((day) => String(day));
   const tutorData = {
-    name: String(formData.get('name') || '').trim(),
     subjects: String(formData.get('subjects') || '').trim(),
-    bio: String(formData.get('bio') || '').trim(),
+    qualifications: String(formData.get('qualifications') || '').trim(),
+    bio: String(formData.get('experience') || '').trim(),
     hourlyRate: Number(formData.get('hourlyRate')),
-    email: String(formData.get('email') || '').trim(),
-    profileImageURL: String(formData.get('profileImageURL') || '').trim()
+    availability: workDays.length === 7 ? 'high' : 'low'
   };
 
   const statusEl = document.getElementById('tutorApplicationStatus');
 
   try {
-    const tutorId = await createTutorProfile(tutorData);
+    await saveTutorProfile(tutorData);
 
     if (statusEl) {
-      statusEl.textContent = `Tutor profile saved successfully (ID: ${tutorId}).`;
+      statusEl.textContent = 'Tutor profile saved successfully.';
       statusEl.className = 'status-message success';
     }
 

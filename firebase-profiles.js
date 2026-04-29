@@ -5,36 +5,37 @@ import { getAuth } from 'firebase/auth';
  * Firestore Security Rules (example)
  *
  * match /databases/{database}/documents {
- *   match /profiles/{uid} {
- *     allow read: if true; // public profiles are readable by anyone
- *     allow write: if request.auth != null && request.auth.uid == uid; // only owner can write
+ *   match /users/{uid} {
+ *     allow read: if request.auth != null;
+ *     allow write: if request.auth != null && request.auth.uid == uid;
  *   }
  * }
  */
 
 /**
- * Create or update the currently authenticated user's public profile.
- * Uses merge mode so existing fields are preserved unless overwritten.
+ * Create or update the authenticated user's base account record in users/{uid}.
  *
- * @param {import('firebase/firestore').Firestore} db - Initialized Firestore instance.
- * @param {{displayName: string, bio: string, photoURL: string}} profile
+ * @param {import('firebase/firestore').Firestore} db
+ * @param {{name: string, email: string, roles?: string[]}} account
  */
-export async function savePublicProfile(db, profile) {
+export async function saveUserAccount(db, account) {
   const auth = getAuth();
   const user = auth.currentUser;
 
   if (!user) {
-    throw new Error('User must be authenticated to save a profile.');
+    throw new Error('User must be authenticated to save account data.');
   }
 
-  const profileRef = doc(db, 'profiles', user.uid);
+  const userRef = doc(db, 'users', user.uid);
+  const roles = Array.isArray(account.roles) && account.roles.length ? account.roles : ['student'];
 
   await setDoc(
-    profileRef,
+    userRef,
     {
-      displayName: profile.displayName,
-      bio: profile.bio,
-      photoURL: profile.photoURL,
+      name: account.name,
+      email: account.email,
+      roles,
+      updatedAt: serverTimestamp(),
       createdAt: serverTimestamp()
     },
     { merge: true }
@@ -44,15 +45,14 @@ export async function savePublicProfile(db, profile) {
 }
 
 /**
- * Fetches a public profile by uid for any visitor.
+ * Fetch any user document by uid.
  *
- * @param {import('firebase/firestore').Firestore} db - Initialized Firestore instance.
+ * @param {import('firebase/firestore').Firestore} db
  * @param {string} uid
- * @returns {Promise<{uid: string, displayName: string, bio: string, photoURL: string, createdAt: unknown} | null>}
  */
-export async function getPublicProfile(db, uid) {
-  const profileRef = doc(db, 'profiles', uid);
-  const snapshot = await getDoc(profileRef);
+export async function getUserByUid(db, uid) {
+  const userRef = doc(db, 'users', uid);
+  const snapshot = await getDoc(userRef);
 
   if (!snapshot.exists()) {
     return null;
