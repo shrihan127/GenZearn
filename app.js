@@ -402,11 +402,22 @@
 
   async function upsertUserProfile(uid, profile) {
     if (!window.firebase || !window.firebase.database || !uid) return;
-    await window.firebase.database().ref('users/' + uid).set({
+
+    const userRef = window.firebase.database().ref('users/' + uid);
+    const snapshot = await userRef.once('value');
+    const existingUser = snapshot.exists() ? snapshot.val() : null;
+
+    const normalizedExistingRoles = Array.isArray(existingUser && existingUser.roles)
+      ? existingUser.roles
+      : (existingUser && existingUser.role ? [existingUser.role] : []);
+    const mergedRoles = Array.from(new Set([...normalizedExistingRoles, profile.role].filter(Boolean)));
+
+    await userRef.set({
       name: profile.name,
       email: profile.email,
       role: profile.role,
-      createdAt: profile.createdAt || new Date().toISOString()
+      roles: mergedRoles,
+      createdAt: (existingUser && existingUser.createdAt) || profile.createdAt || new Date().toISOString()
     });
   }
 
