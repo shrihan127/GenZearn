@@ -773,4 +773,13 @@ footer {
   margin: 0;
 }
 
-.auth-divider { text-align:center; margin: 0.5rem 0; color:#666; font-size:0.95rem; }
+.auth-divider { text-align:center; margin: 0.5rem 0; color:#ffd700; font-size:0.95rem; }
+
+.auth-link-highlight {
+  color: #ffd700;
+  font-weight: 600;
+}
+
+.auth-link-highlight:hover {
+  text-decoration: underline;
+}
