@@ -848,7 +848,7 @@
 
         if (error.code === 'auth/user-not-found') {
           message = 'No account exists with this email.';
-        } else if (error.code === 'auth/wrong-password') {
+        } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
           message = 'Incorrect password.';
         } else if (error.code === 'auth/invalid-email') {
           message = 'Invalid email format.';
