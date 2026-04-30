@@ -778,13 +778,17 @@
         try {
           const provider = new window.firebase.auth.GoogleAuthProvider();
           provider.setCustomParameters({ prompt: 'select_account' });
-          const result = await window.firebase.auth().signInWithPopup(provider);
-          const profile = await getCurrentAuthUserProfile();
-          const name = profile?.name || result.user.displayName || result.user.email || 'User';
-          const email = String(profile?.email || result.user.email || '').trim().toLowerCase();
-          const role = profile?.role || (Array.isArray(profile?.roles) ? profile.roles[profile.roles.length - 1] || '' : '');
-          await upsertUserProfile(result.user, { name, email, role });
-          setCurrentUser({ name, email, role });
+          const result = await firebase.auth().signInWithPopup(provider);
+          const user = result.user;
+          const db = firebase.database();
+
+          await db.ref('users/' + user.uid).update({
+            name: user.displayName,
+            email: user.email,
+            roles: ['student']
+          });
+
+          setCurrentUser({ name: user.displayName, email: user.email, role: 'student' });
           setStatus(status, 'Logged in with Google! Redirecting...', 'success');
           setTimeout(() => { window.location.href = 'find-tutors.html'; }, 800);
         } catch (error) {
