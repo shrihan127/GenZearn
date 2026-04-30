@@ -47,7 +47,7 @@
 
 
   async function upsertUserProfile(user, profile) {
-    if (!window.firebase || typeof window.firebase.database !== 'function' || !user || !profile) return;
+    if (!window.firebase || typeof window.firebase.database !== 'function' || !user || !user.uid || !profile) return;
 
     const now = new Date().toISOString();
     const userRef = window.firebase.database().ref('users/' + user.uid);
@@ -55,6 +55,7 @@
     const existingUser = userSnapshot.exists() ? userSnapshot.val() || {} : {};
 
     const roles = new Set(Array.isArray(existingUser.roles) ? existingUser.roles : []);
+    if (existingUser.role) roles.add(existingUser.role);
     if (profile.role) roles.add(profile.role);
     if (Array.isArray(profile.roles)) {
       profile.roles.forEach((role) => {
@@ -62,11 +63,13 @@
       });
     }
 
+    if (!roles.size) roles.add('student');
+
     await userRef.set({
       name: existingUser.name || profile.name || user.displayName || user.email || 'User',
-      email: profile.email || existingUser.email || String(user.email || '').toLowerCase(),
+      email: (profile.email || existingUser.email || String(user.email || '')).trim().toLowerCase(),
       roles: Array.from(roles),
-      createdAt: existingUser.createdAt || now,
+      createdAt: existingUser.createdAt || profile.createdAt || now,
       updatedAt: now
     });
   }
@@ -426,29 +429,6 @@
 
 
 
-  async function upsertUserProfile(user, profile) {
-    if (!window.firebase || !window.firebase.database || !user || !user.uid || !profile) return;
-
-    const userRef = window.firebase.database().ref('users/' + user.uid);
-    const snapshot = await userRef.once('value');
-    const existingUser = snapshot.exists() ? snapshot.val() : null;
-
-    const normalizedExistingRoles = Array.isArray(existingUser && existingUser.roles)
-      ? existingUser.roles
-      : (existingUser && existingUser.role ? [existingUser.role] : []);
-    const mergedRoles = Array.from(new Set([...normalizedExistingRoles, profile.role].filter(Boolean)));
-
-    await userRef.set({
-      name: profile.name,
-      email: profile.email,
-      roles: mergedRoles,
-      createdAt: (existingUser && existingUser.createdAt) || profile.createdAt || new Date().toISOString()
-    });
-
-  }
-
-
-
   async function signInWithGoogleAndLinkIfNeeded() {
     const provider = new window.firebase.auth.GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
@@ -776,7 +756,7 @@
             }
           }
 
-          setCurrentUser({ name, email, role });
+          setCurrentUser({ name, email, role, roles: role === 'tutor' ? ['student', 'tutor'] : ['student'] });
           setStatus(status, role === 'tutor' ? 'Google account connected and tutor profile created!' : 'Google account connected successfully!', 'success');
           setTimeout(() => { window.location.href = 'find-tutors.html'; }, 800);
         } catch (error) {
@@ -811,17 +791,21 @@
         try {
           const result = await signInWithGoogleAndLinkIfNeeded();
           const user = result.user;
-          const db = firebase.database();
-
-          const profileRef = db.ref('users/' + user.uid);
-
-          await profileRef.update({
-            name: user.displayName,
-            email: user.email,
-            updatedAt: new Date().toISOString()
+          await upsertUserProfile(user, {
+            name: user.displayName || 'User',
+            email: String(user.email || '').trim().toLowerCase(),
+            role: 'student'
           });
 
-          setCurrentUser({ name: user.displayName, email: user.email, role: 'student' });
+          const profile = await getCurrentAuthUserProfile();
+          const currentRoles = Array.isArray(profile && profile.roles) && profile.roles.length ? profile.roles : ['student'];
+          const activeRole = currentRoles.includes('student') ? 'student' : currentRoles[currentRoles.length - 1];
+          setCurrentUser({
+            name: (profile && profile.name) || user.displayName || 'User',
+            email: (profile && profile.email) || String(user.email || '').trim().toLowerCase(),
+            role: activeRole,
+            roles: currentRoles
+          });
           setStatus(status, 'Logged in with Google! Redirecting...', 'success');
           setTimeout(() => { window.location.href = 'find-tutors.html'; }, 800);
         } catch (error) {
@@ -852,7 +836,7 @@
           email: user.email,
           role
         });
-        setCurrentUser({ name: user.name, email: user.email, role });
+        setCurrentUser({ name: user.name, email: user.email, role, roles: user.roles });
         setStatus(status, 'Logged in successfully! Redirecting...', 'success');
         setTimeout(() => {
           window.location.href = 'find-tutors.html';
