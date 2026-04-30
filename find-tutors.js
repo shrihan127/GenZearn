@@ -1,4 +1,4 @@
-import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import { collection, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { db } from "./firebase.js";
 
 const tutorsContainer = document.getElementById("tutorsContainer");
@@ -32,20 +32,16 @@ function renderTutorCards(tutors) {
 
   tutorsContainer.innerHTML = tutors
     .map((tutor) => {
-      const name = escapeHtml(tutor.fullName || tutor.name || "Tutor");
-      const subjects = escapeHtml(tutor.subjects || "Not specified");
-      const bio = escapeHtml(tutor.bio || tutor.description || "Profile coming soon.");
-      const rate = Number(tutor.hourlyRate || tutor.rate);
-      const displayRate = Number.isFinite(rate) ? `$${rate}/hour` : "Rate unavailable";
-      const availability = escapeHtml(tutor.availability || "Not specified");
+      const name = escapeHtml(tutor.name || "Tutor");
+      const email = escapeHtml(tutor.email || "Email unavailable");
 
       return `
         <article class="tutor-card">
-          <p class="tutor-availability">Availability: ${availability}</p>
+          <p class="tutor-availability">Tutor account active</p>
           <h3 class="tutor-name">${name}</h3>
-          <p class="tutor-subjects">Subjects: ${subjects}</p>
-          <p class="tutor-bio">${bio}</p>
-          <p class="tutor-rate">${displayRate}</p>
+          <p class="tutor-subjects">Contact: ${email}</p>
+          <p class="tutor-bio">This tutor can be contacted for availability and subjects.</p>
+          <p class="tutor-rate">Rate shared on request</p>
         </article>
       `;
     })
@@ -55,7 +51,11 @@ function renderTutorCards(tutors) {
 if (tutorsContainer) {
   renderStatus("Loading tutors...");
 
-  const tutorsQuery = query(collection(db, "tutors"), orderBy("createdAt", "desc"));
+  const tutorsQuery = query(
+    collection(db, "users"),
+    where("roles", "array-contains", "tutor"),
+    orderBy("createdAt", "desc")
+  );
 
   onSnapshot(
     tutorsQuery,
