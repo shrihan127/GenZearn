@@ -825,23 +825,18 @@
           window.location.href = 'find-tutors.html';
         }, 800);
       } catch (error) {
-        if (error && error.code === 'auth/invalid-credential') {
-          setStatus(status, 'Invalid email or password. Try signing up first.', 'error');
-          return;
-        }
-        if (error && error.code === 'auth/too-many-requests') {
-          setStatus(status, 'Too many attempts. Please wait a moment and try again.', 'error');
-          return;
-        }
-        setStatus(status, 'Could not log in right now. Please try again.', 'error');
+        console.log('LOGIN ERROR:', error.code, error.message);
+
         let message = 'Could not log in.';
-        if (error && error.code === 'auth/user-not-found') {
-          message = 'No account found with this email.';
-        } else if (error && error.code === 'auth/wrong-password') {
+
+        if (error.code === 'auth/user-not-found') {
+          message = 'No account exists with this email.';
+        } else if (error.code === 'auth/wrong-password') {
           message = 'Incorrect password.';
-        } else if (error && error.code === 'auth/invalid-email') {
-          message = 'Invalid email.';
+        } else if (error.code === 'auth/invalid-email') {
+          message = 'Invalid email format.';
         }
+
         setStatus(status, message, 'error');
       }
     });
