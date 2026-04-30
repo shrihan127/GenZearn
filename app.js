@@ -852,6 +852,8 @@
           message = 'Incorrect password.';
         } else if (error.code === 'auth/invalid-email') {
           message = 'Invalid email format.';
+        } else if (error.code === 'auth/too-many-requests') {
+          message = 'Too many login attempts. Please wait a few minutes before trying again.';
         }
 
         setStatus(status, message, 'error');
