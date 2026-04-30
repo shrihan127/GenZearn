@@ -813,10 +813,12 @@
           const user = result.user;
           const db = firebase.database();
 
-          await db.ref('users/' + user.uid).update({
+          const profileRef = db.ref('users/' + user.uid);
+
+          await profileRef.update({
             name: user.displayName,
             email: user.email,
-            roles: ['student']
+            updatedAt: new Date().toISOString()
           });
 
           setCurrentUser({ name: user.displayName, email: user.email, role: 'student' });
