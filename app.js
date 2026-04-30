@@ -47,20 +47,24 @@
 
 
   async function upsertUserProfile(user, profile) {
-    if (!firebase.database || !user || !profile) return;
+    if (!window.firebase || typeof window.firebase.database !== 'function' || !user || !profile) return;
 
     const now = new Date().toISOString();
-    const userRef = firebase.database().ref('users/' + user.uid);
+    const userRef = window.firebase.database().ref('users/' + user.uid);
     const userSnapshot = await userRef.once('value');
     const existingUser = userSnapshot.exists() ? userSnapshot.val() || {} : {};
 
     const roles = new Set(Array.isArray(existingUser.roles) ? existingUser.roles : []);
     if (profile.role) roles.add(profile.role);
+    if (Array.isArray(profile.roles)) {
+      profile.roles.forEach((role) => {
+        if (role) roles.add(role);
+      });
+    }
 
     await userRef.set({
       name: existingUser.name || profile.name || user.displayName || user.email || 'User',
       email: profile.email || existingUser.email || String(user.email || '').toLowerCase(),
-      role: profile.role || existingUser.role || '',
       roles: Array.from(roles),
       createdAt: existingUser.createdAt || now,
       updatedAt: now
@@ -105,7 +109,7 @@
       if (!snapshot.exists()) return fallbackProfile;
       const remoteProfile = snapshot.val() || {};
       const remoteRoles = Array.isArray(remoteProfile.roles) ? remoteProfile.roles : [];
-      const resolvedRole = remoteProfile.role || remoteRoles[remoteRoles.length - 1] || '';
+      const resolvedRole = remoteRoles[remoteRoles.length - 1] || remoteProfile.role || '';
       return {
         name: remoteProfile.name || fallbackProfile.name,
         email: String(remoteProfile.email || fallbackProfile.email).trim().toLowerCase(),
@@ -591,11 +595,11 @@
         let createdNewAuthUser = false;
 
         try {
-          result = await firebase.auth().createUserWithEmailAndPassword(email, password);
+          result = await window.firebase.auth().createUserWithEmailAndPassword(email, password);
           createdNewAuthUser = true;
         } catch (authError) {
           if (authError.code === 'auth/email-already-in-use') {
-            result = await firebase.auth().signInWithEmailAndPassword(email, password);
+            result = await window.firebase.auth().signInWithEmailAndPassword(email, password);
             createdNewAuthUser = false;
           } else {
             throw authError;
@@ -610,7 +614,7 @@
         }
 
         // 3. Store extra user data in Realtime Database (optional)
-        if (firebase.database) {
+        if (window.firebase && typeof window.firebase.database === 'function') {
           await upsertUserProfile(result.user, { name, email, role });
         }
 
@@ -697,9 +701,9 @@
         googleSignupBtn.disabled = true;
         submitButton.disabled = true;
         try {
-          const provider = new firebase.auth.GoogleAuthProvider();
+          const provider = new window.firebase.auth.GoogleAuthProvider();
           provider.setCustomParameters({ prompt: 'select_account' });
-          const result = await firebase.auth().signInWithPopup(provider);
+          const result = await window.firebase.auth().signInWithPopup(provider);
           const googleUser = result.user;
           const name = nameFromForm || googleUser.displayName || 'User';
           const email = String(googleUser.email || '').trim().toLowerCase();
@@ -772,9 +776,9 @@
       googleLoginBtn.addEventListener('click', async function () {
         googleLoginBtn.disabled = true;
         try {
-          const provider = new firebase.auth.GoogleAuthProvider();
+          const provider = new window.firebase.auth.GoogleAuthProvider();
           provider.setCustomParameters({ prompt: 'select_account' });
-          const result = await firebase.auth().signInWithPopup(provider);
+          const result = await window.firebase.auth().signInWithPopup(provider);
           const profile = await getCurrentAuthUserProfile();
           const name = profile?.name || result.user.displayName || result.user.email || 'User';
           const email = String(profile?.email || result.user.email || '').trim().toLowerCase();
