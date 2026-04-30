@@ -448,6 +448,61 @@
   }
 
 
+
+  async function signInWithGoogleAndLinkIfNeeded() {
+    const provider = new window.firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+
+    try {
+      return await window.firebase.auth().signInWithPopup(provider);
+    } catch (error) {
+      if (!error || error.code !== 'auth/account-exists-with-different-credential') throw error;
+
+      const email = String(error.email || '').trim().toLowerCase();
+      const pendingCredential = error.credential;
+      const methods = email ? await window.firebase.auth().fetchSignInMethodsForEmail(email) : [];
+
+      if (!methods.includes('password')) {
+        throw new Error('Please sign in with your existing provider first, then retry Google to link accounts.');
+      }
+
+      const password = window.prompt('Enter your existing password to link Google to this account:');
+      if (!password) {
+        throw new Error('Account linking cancelled.');
+      }
+
+      const emailResult = await window.firebase.auth().signInWithEmailAndPassword(email, password);
+      if (pendingCredential) {
+        await emailResult.user.linkWithCredential(pendingCredential);
+      }
+      return emailResult;
+    }
+  }
+
+  async function createOrLinkEmailUser(email, password, name) {
+    try {
+      const result = await window.firebase.auth().createUserWithEmailAndPassword(email, password);
+      await result.user.updateProfile({ displayName: name });
+      return result;
+    } catch (error) {
+      if (!error || error.code !== 'auth/email-already-in-use') throw error;
+
+      const methods = await window.firebase.auth().fetchSignInMethodsForEmail(email);
+      if (methods.includes('password')) {
+        return window.firebase.auth().signInWithEmailAndPassword(email, password);
+      }
+
+      if (methods.includes('google.com')) {
+        const googleResult = await signInWithGoogleAndLinkIfNeeded();
+        const credential = window.firebase.auth.EmailAuthProvider.credential(email, password);
+        await googleResult.user.linkWithCredential(credential);
+        return window.firebase.auth().signInWithEmailAndPassword(email, password);
+      }
+
+      throw new Error('This email is already registered with another sign-in method. Please use that method first.');
+    }
+  }
+
   async function createFirebaseAuthUser(email, password) {
     if (!window.firebase || typeof window.firebase.auth !== 'function') {
       throw new Error('Firebase Auth is not configured right now.');
@@ -591,27 +646,7 @@
       submitButton.disabled = true;
 
       try {
-        let result;
-        let createdNewAuthUser = false;
-
-        try {
-          result = await window.firebase.auth().createUserWithEmailAndPassword(email, password);
-          createdNewAuthUser = true;
-        } catch (authError) {
-          if (authError.code === 'auth/email-already-in-use') {
-            result = await window.firebase.auth().signInWithEmailAndPassword(email, password);
-            createdNewAuthUser = false;
-          } else {
-            throw authError;
-          }
-        }
-
-        // 2. Update display name for newly created users.
-        if (createdNewAuthUser) {
-          await result.user.updateProfile({
-            displayName: name
-          });
-        }
+        const result = await createOrLinkEmailUser(email, password, name);
 
         // 3. Store extra user data in Realtime Database (optional)
         if (window.firebase && typeof window.firebase.database === 'function') {
@@ -701,9 +736,7 @@
         googleSignupBtn.disabled = true;
         submitButton.disabled = true;
         try {
-          const provider = new window.firebase.auth.GoogleAuthProvider();
-          provider.setCustomParameters({ prompt: 'select_account' });
-          const result = await window.firebase.auth().signInWithPopup(provider);
+          const result = await signInWithGoogleAndLinkIfNeeded();
           const googleUser = result.user;
           const name = nameFromForm || googleUser.displayName || 'User';
           const email = String(googleUser.email || '').trim().toLowerCase();
@@ -776,9 +809,7 @@
       googleLoginBtn.addEventListener('click', async function () {
         googleLoginBtn.disabled = true;
         try {
-          const provider = new window.firebase.auth.GoogleAuthProvider();
-          provider.setCustomParameters({ prompt: 'select_account' });
-          const result = await firebase.auth().signInWithPopup(provider);
+          const result = await signInWithGoogleAndLinkIfNeeded();
           const user = result.user;
           const db = firebase.database();
 
