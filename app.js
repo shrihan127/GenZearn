@@ -1,3 +1,18 @@
+import { auth, db as rtdb, firebaseConfig } from './firebase.js';
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  GoogleAuthProvider,
+  signInWithPopup,
+  linkWithCredential,
+  EmailAuthProvider,
+  fetchSignInMethodsForEmail,
+  updateProfile,
+  signOut
+} from 'firebase/auth';
+import { ref, get, set, push, onValue, off } from 'firebase/database';
+
 (function () {
   const STORAGE_KEYS = {
     currentUser: 'genzearn_current_user',
@@ -456,7 +471,7 @@
 
       const emailResult = await firebaseAuthApi.signInWithEmailAndPassword(auth, email, password);
       if (pendingCredential) {
-        await emailResult.user.linkWithCredential(pendingCredential);
+        await linkWithCredential(emailResult.user, pendingCredential);
       }
       return emailResult;
     }
