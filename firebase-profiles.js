@@ -1,5 +1,5 @@
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { auth } from './firebase.js';
 
 /**
  * Firestore Security Rules (example)
@@ -19,7 +19,6 @@ import { getAuth } from 'firebase/auth';
  * @param {{name: string, email: string, roles?: string[]}} account
  */
 export async function saveUserAccount(db, account) {
-  const auth = getAuth();
   const user = auth.currentUser;
 
   if (!user) {

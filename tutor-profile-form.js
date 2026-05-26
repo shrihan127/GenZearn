@@ -1,13 +1,11 @@
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
-import { db } from './firebase.js';
+import { auth, db } from './firebase.js';
 
 /**
  * Updates the authenticated user's account record in users/{uid}
  * using the single-user model.
  */
 export async function saveTutorProfile() {
-  const auth = getAuth();
   const user = auth.currentUser;
 
   if (!user) {
