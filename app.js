@@ -480,31 +480,35 @@ import {
   }
 
   async function signInWithGoogle() {
-        ensureAuthInitialized();
+    ensureAuthInitialized();
+
+    const provider = createGoogleProvider();
 
     try {
-      return await signInWithPopup(auth, createGoogleProvider());
+      return await signInWithPopup(auth, provider);
     } catch (error) {
       if (!error || error.code !== 'auth/account-exists-with-different-credential') throw error;
 
-      const email = String(error.email || '').trim().toLowerCase();
-      const pendingCredential = error.credential;
+      const email = String(error.customData?.email || error.email || '').trim().toLowerCase();
+      const pendingCredential = GoogleAuthProvider.credentialFromError(error) || error.credential;
       const methods = email ? await fetchSignInMethodsForEmail(auth, email) : [];
 
-      if (!methods.includes('password')) {
-        throw new Error('Please sign in with your existing provider first, then retry Google to link accounts.');
+      if (methods.includes('password')) {
+        const password = window.prompt('Enter your existing password to link Google to this account:');
+        if (!password) {
+          throw new Error('Account linking cancelled.');
+        }
+
+        const emailResult = await signInWithEmailAndPassword(auth, email, password);
+
+        if (pendingCredential) {
+          await linkWithCredential(emailResult.user, pendingCredential);
+        }
+
+        return emailResult;
       }
 
-      const password = window.prompt('Enter your existing password to link Google to this account:');
-      if (!password) {
-        throw new Error('Account linking cancelled.');
-      }
-
-      const emailResult = await signInWithEmailAndPassword(auth, email, password);
-      if (pendingCredential) {
-        await linkWithCredential(emailResult.user, pendingCredential);
-      }
-      return emailResult;
+      throw new Error('Please sign in with your existing provider first, then retry Google to link accounts.');
     }
   }
 
