@@ -100,15 +100,23 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
   }
 
   async function initFirebase() {
-    if (!hasUsableFirebaseConfig(firebaseConfig)) return;
-    const firebaseCore = await import('./firebase.js');
-    const authModule = await import('https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js');
-    const dbModule = await import('https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js');
+    if (!hasUsableFirebaseConfig(window.firebaseConfig)) return;
 
-    auth = firebaseCore.auth || firebaseAuth;
-    db = firebaseCore.db || firebaseRtdb;
-    firebaseAuthApi = authModule;
-    firebaseDbApi = dbModule;
+    try {
+      const firebaseCore = await import('./firebase.js');
+      const authModule = await import('https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js');
+      const dbModule = await import('https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js');
+
+      auth = firebaseCore.auth;
+      db = firebaseCore.db;
+      firebaseAuthApi = authModule;
+      firebaseDbApi = dbModule;
+    } catch {
+      auth = null;
+      db = null;
+      firebaseAuthApi = null;
+      firebaseDbApi = null;
+    }
   }
 
   async function getCurrentAuthUserProfile() {
@@ -796,7 +804,7 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
     if (!form) return;
 
     const status = document.getElementById('loginStatus');
-    if (!auth) {
+    if (!auth || !firebaseAuthApi) {
       setStatus(status, 'Firebase Auth is not configured right now.', 'error');
       return;
     }
@@ -841,7 +849,7 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
       const password = form.elements.password.value;
 
       try {
-        if (!auth) {
+        if (!auth || !firebaseAuthApi) {
           setStatus(status, 'Login is unavailable until Firebase Auth is configured.', 'error');
           return;
         }
@@ -901,7 +909,7 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
       }
 
       try {
-        if (!auth) {
+        if (!auth || !firebaseAuthApi) {
           setStatus(status, 'Password reset is unavailable until Firebase Auth is configured.', 'error');
           return;
         }
