@@ -22,7 +22,10 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
     chatMessages: 'genzearn_chat_messages'
   };
 
-  let db = rtdb || null;
+  let db = null;
+  let auth = null;
+  let firebaseAuthApi = null;
+  let firebaseDbApi = null;
 
   function hasUsableFirebaseConfig(config) {
     if (!config || typeof config !== 'object') return false;
@@ -62,11 +65,11 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
 
 
   async function upsertUserProfile(user, profile) {
-    if (!db || !user || !user.uid || !profile) return;
+    if (!db || !firebaseDbApi || !user || !user.uid || !profile) return;
 
     const now = new Date().toISOString();
-    const userRef = ref(db, 'users/' + user.uid);
-    const userSnapshot = await get(userRef);
+    const userRef = firebaseDbApi.ref(db, 'users/' + user.uid);
+    const userSnapshot = await firebaseDbApi.get(userRef);
     const existingUser = userSnapshot.exists() ? userSnapshot.val() || {} : {};
 
     const roles = new Set(Array.isArray(existingUser.roles) ? existingUser.roles : []);
@@ -80,7 +83,7 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
 
     if (!roles.size) roles.add('student');
 
-    await set(userRef, {
+    await firebaseDbApi.set(userRef, {
       name: existingUser.name || profile.name || user.displayName || user.email || 'User',
       email: (profile.email || existingUser.email || String(user.email || '')).trim().toLowerCase(),
       roles: Array.from(roles),
@@ -96,12 +99,20 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
     return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(normalizedEmail)}`;
   }
 
-  function initFirebase() {
-    if (!hasUsableFirebaseConfig(firebaseConfig)) return;
-    db = rtdb || null;
+  async function initFirebase() {
+    if (!hasUsableFirebaseConfig(window.firebaseConfig)) return;
+    const firebaseCore = await import('./firebase.js');
+    const authModule = await import('https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js');
+    const dbModule = await import('https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js');
+
+    auth = firebaseCore.auth;
+    db = firebaseCore.db;
+    firebaseAuthApi = authModule;
+    firebaseDbApi = dbModule;
   }
 
   async function getCurrentAuthUserProfile() {
+    if (!auth) return null;
     const authUser = auth.currentUser;
     if (!authUser) return null;
 
@@ -115,7 +126,7 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
     if (!db) return fallbackProfile;
 
     try {
-      const snapshot = await get(ref(db, `users/${authUser.uid}`));
+      const snapshot = await firebaseDbApi.get(firebaseDbApi.ref(db, `users/${authUser.uid}`));
       if (!snapshot.exists()) return fallbackProfile;
       const remoteProfile = snapshot.val() || {};
       const remoteRoles = Array.isArray(remoteProfile.roles) ? remoteProfile.roles : [];
@@ -133,7 +144,7 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
 
   async function createTutorApplication(application) {
     if (!db) return;
-    await push(ref(db, 'tutorApplications'), application);
+    await firebaseDbApi.push(firebaseDbApi.ref(db, 'tutorApplications'), application);
   }
 
   function queueTutorApplicationForSync(application) {
@@ -162,14 +173,14 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
 
   async function createSessionRequest(request) {
     if (!db) return;
-    await push(ref(db, 'sessionRequests'), request);
+    await firebaseDbApi.push(firebaseDbApi.ref(db, 'sessionRequests'), request);
   }
 
   async function getTutorApplications() {
     const localApplications = loadJson(STORAGE_KEYS.tutorApps, []);
     if (!db) return localApplications;
 
-    const snapshot = await get(ref(db, 'tutorApplications'));
+    const snapshot = await firebaseDbApi.get(firebaseDbApi.ref(db, 'tutorApplications'));
     const remoteApplications = Object.entries(snapshot.val() || {}).map(([key, value]) => ({
       ...value,
       _remoteKey: key
@@ -180,7 +191,7 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
   function subscribeTutorApplications(onUpdate, onError) {
     if (!db || typeof onUpdate !== 'function') return function () {};
 
-    const tutorApplicationsRef = ref(db, 'tutorApplications');
+    const ref = firebaseDbApi.ref(db, 'tutorApplications');
     const handleValue = function (snapshot) {
       const remoteApplications = Object.entries(snapshot.val() || {}).map(([key, value]) => ({
         ...value,
@@ -192,9 +203,9 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
       if (typeof onError === 'function') onError();
     };
 
-    onValue(tutorApplicationsRef, handleValue, handleError);
+    firebaseDbApi.onValue(ref, handleValue, handleError);
     return function () {
-      off(tutorApplicationsRef, 'value', handleValue);
+      firebaseDbApi.off(ref, 'value', handleValue);
     };
   }
 
@@ -418,10 +429,12 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
       const logoutBtn = accountArea.querySelector('.logout-btn');
       logoutBtn.addEventListener('click', async function () {
         localStorage.removeItem(STORAGE_KEYS.currentUser);
-        try {
-          await signOut(auth);
-        } catch {
-          // Ignore sign-out errors and still clear the local session.
+        if (auth) {
+          try {
+            await firebaseAuthApi.signOut(auth);
+          } catch {
+            // Ignore sign-out errors and still clear the local session.
+          }
         }
         window.location.href = 'index.html';
       });
@@ -435,17 +448,17 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
 
 
   async function signInWithGoogleAndLinkIfNeeded() {
-    const provider = new GoogleAuthProvider();
+    const provider = new firebaseAuthApi.GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
 
     try {
-      return await signInWithPopup(auth, provider);
+      return await firebaseAuthApi.signInWithPopup(auth, provider);
     } catch (error) {
       if (!error || error.code !== 'auth/account-exists-with-different-credential') throw error;
 
       const email = String(error.email || '').trim().toLowerCase();
       const pendingCredential = error.credential;
-      const methods = email ? await fetchSignInMethodsForEmail(auth, email) : [];
+      const methods = email ? await firebaseAuthApi.fetchSignInMethodsForEmail(auth, email) : [];
 
       if (!methods.includes('password')) {
         throw new Error('Please sign in with your existing provider first, then retry Google to link accounts.');
@@ -456,7 +469,7 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
         throw new Error('Account linking cancelled.');
       }
 
-      const emailResult = await signInWithEmailAndPassword(auth, email, password);
+      const emailResult = await firebaseAuthApi.signInWithEmailAndPassword(auth, email, password);
       if (pendingCredential) {
         await linkWithCredential(emailResult.user, pendingCredential);
       }
@@ -466,22 +479,22 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
 
   async function createOrLinkEmailUser(email, password, name) {
     try {
-      const result = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(result.user, { displayName: name });
+      const result = await firebaseAuthApi.createUserWithEmailAndPassword(auth, email, password);
+      await result.user.updateProfile({ displayName: name });
       return result;
     } catch (error) {
       if (!error || error.code !== 'auth/email-already-in-use') throw error;
 
-      const methods = await fetchSignInMethodsForEmail(auth, email);
+      const methods = await firebaseAuthApi.fetchSignInMethodsForEmail(auth, email);
       if (methods.includes('password')) {
-        return signInWithEmailAndPassword(auth, email, password);
+        return firebaseAuthApi.signInWithEmailAndPassword(auth, email, password);
       }
 
       if (methods.includes('google.com')) {
         const googleResult = await signInWithGoogleAndLinkIfNeeded();
-        const credential = EmailAuthProvider.credential(email, password);
-        await linkWithCredential(googleResult.user, credential);
-        return signInWithEmailAndPassword(auth, email, password);
+        const credential = firebaseAuthApi.EmailAuthProvider.credential(email, password);
+        await googleResult.user.linkWithCredential(credential);
+        return firebaseAuthApi.signInWithEmailAndPassword(auth, email, password);
       }
 
       throw new Error('This email is already registered with another sign-in method. Please use that method first.');
@@ -489,8 +502,12 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
   }
 
   async function createFirebaseAuthUser(email, password) {
-        try {
-      await createUserWithEmailAndPassword(auth, email, password);
+    if (!auth) {
+      throw new Error('Firebase Auth is not configured right now.');
+    }
+
+    try {
+      await firebaseAuthApi.createUserWithEmailAndPassword(auth, email, password);
     } catch (error) {
       if (error && error.code === 'auth/email-already-in-use') {
         throw new Error('An account with this email already exists. Please log in.');
@@ -630,7 +647,9 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
         const result = await createOrLinkEmailUser(email, password, name);
 
         // 3. Store extra user data in Realtime Database (optional)
-        await upsertUserProfile(result.user, { name, email, role });
+        if (db) {
+          await upsertUserProfile(result.user, { name, email, role });
+        }
 
         if (role === 'tutor') {
           const selectedWorkDays = Array.from(form.querySelectorAll('input[name="workDays"]:checked')).map((input) => input.value);
@@ -777,7 +796,12 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
     if (!form) return;
 
     const status = document.getElementById('loginStatus');
-    
+    if (!auth) {
+      setStatus(status, 'Firebase Auth is not configured right now.', 'error');
+      return;
+    }
+
+
     const googleLoginBtn = document.getElementById('googleLoginBtn');
     if (googleLoginBtn) {
       googleLoginBtn.addEventListener('click', async function () {
@@ -817,7 +841,11 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
       const password = form.elements.password.value;
 
       try {
-                const result = await signInWithEmailAndPassword(auth, email, password);
+        if (!auth) {
+          setStatus(status, 'Login is unavailable until Firebase Auth is configured.', 'error');
+          return;
+        }
+        const result = await firebaseAuthApi.signInWithEmailAndPassword(auth, email, password);
         const user = await getCurrentAuthUserProfile();
         if (!user) throw new Error('Could not load user profile.');
         const role = user.role || (Array.isArray(user.roles) ? user.roles[user.roles.length - 1] || '' : '');
@@ -873,7 +901,11 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
       }
 
       try {
-                await sendPasswordResetEmail(auth, email);
+        if (!auth) {
+          setStatus(status, 'Password reset is unavailable until Firebase Auth is configured.', 'error');
+          return;
+        }
+        await firebaseAuthApi.sendPasswordResetEmail(auth, email);
         setStatus(status, `Password reset link sent to ${email}. Please check your inbox.`, 'success');
       } catch (error) {
         if (error && error.code === 'auth/invalid-email') {
@@ -1111,8 +1143,8 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
     };
   }
 
-  document.addEventListener('DOMContentLoaded', function () {
-    initFirebase();
+  document.addEventListener('DOMContentLoaded', async function () {
+    await initFirebase();
     updateAuthUI();
     flushPendingTutorApplications();
     initSignup();
