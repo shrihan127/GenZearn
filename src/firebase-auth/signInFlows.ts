@@ -8,6 +8,17 @@ import {
   UserCredential,
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 
+export async function resolveAccount(auth: Auth, email: string): Promise<{ hasPassword: boolean; hasGoogle: boolean; methods: string[] }> {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const methods = await fetchSignInMethodsForEmail(auth, normalizedEmail);
+
+  return {
+    hasPassword: methods.includes('password'),
+    hasGoogle: methods.includes('google.com'),
+    methods,
+  };
+}
+
 export async function signInWithGoogleHandlingDuplicates(auth: Auth): Promise<UserCredential> {
   const provider = new GoogleAuthProvider();
 
@@ -24,14 +35,17 @@ export async function signInWithGoogleHandlingDuplicates(auth: Auth): Promise<Us
       throw new Error('Email was not returned by Firebase for duplicate-account resolution.');
     }
 
-    const pendingCredential = GoogleAuthProvider.credentialFromError(error as Error);
+    const pendingCredential = GoogleAuthProvider.credentialFromError(error as {
+      customData?: { email?: string };
+      code?: string;
+    });
     if (!pendingCredential) {
       throw new Error('Could not recover Google credential for account linking.');
     }
 
-    const methods = await fetchSignInMethodsForEmail(auth, email);
+    const { hasPassword } = await resolveAccount(auth, email);
 
-    if (methods.includes('password')) {
+    if (hasPassword) {
       const promptFn = typeof window !== 'undefined' ? window.prompt : undefined;
       const password = promptFn ? promptFn('Enter your password to link Google:') : null;
 
@@ -54,7 +68,14 @@ export async function signInWithPasswordThenLinkPendingGoogle(
   password: string,
   pendingGoogleCredential?: ReturnType<typeof GoogleAuthProvider.credentialFromError>
 ): Promise<UserCredential> {
-  const result = await signInWithEmailAndPassword(auth, email, password);
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const { hasPassword, hasGoogle } = await resolveAccount(auth, normalizedEmail);
+
+  if (hasGoogle && !hasPassword) {
+    throw new Error('This account uses Google. Please sign in with Google.');
+  }
+
+  const result = await signInWithEmailAndPassword(auth, normalizedEmail, password);
 
   if (pendingGoogleCredential) {
     await linkWithCredential(result.user, pendingGoogleCredential);
