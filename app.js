@@ -84,12 +84,8 @@
   function initFirebase() {
     if (!window.firebase || !hasUsableFirebaseConfig(window.firebaseConfig)) return;
 
-    if (!window.firebase.apps.length) {
-      window.firebase.initializeApp(window.firebaseConfig);
-    }
-
-    window.auth = window.firebase.auth();
-    window.db = window.firebase.database();
+    window.auth = window.auth || null;
+    window.db = window.db || null;
     db = window.db;
   }
 
