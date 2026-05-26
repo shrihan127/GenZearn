@@ -9,7 +9,7 @@ import {
   signOut,
   linkWithCredential,
   EmailAuthProvider
-} from "firebase/auth";
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 
 import {
   ref,
@@ -18,7 +18,7 @@ import {
   push,
   onValue,
   off
-} from "firebase/database";
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
 
 import { auth, db } from "./firebase.js";
 

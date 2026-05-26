@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
 import {
   getAuth,
   GoogleAuthProvider,
@@ -11,7 +11,7 @@ import {
   linkWithCredential,
   EmailAuthProvider,
   updateProfile
-} from 'firebase/auth';
+} from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 
 import {
   getDatabase,
@@ -21,7 +21,7 @@ import {
   push,
   onValue,
   off
-} from 'firebase/database';
+} from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js';
 
 (function () {
   const STORAGE_KEYS = {
@@ -48,7 +48,8 @@ import {
   function loadJson(key, fallback) {
     try {
       return JSON.parse(localStorage.getItem(key)) || fallback;
-    } catch {
+    } catch (error) {
+      console.error(error);
       return fallback;
     }
   }
@@ -125,7 +126,8 @@ import {
       const app = initializeApp(firebaseConfig);
       auth = getAuth(app);
       db = getDatabase(app);
-    } catch {
+    } catch (error) {
+      console.error(error);
       auth = null;
       db = null;
     }
@@ -173,7 +175,8 @@ import {
         role: resolvedRole,
         roles: remoteRoles
       };
-    } catch {
+    } catch (error) {
+      console.error(error);
       return fallbackProfile;
     }
   }
@@ -199,7 +202,8 @@ import {
     for (const application of pendingApplications) {
       try {
         await createTutorApplication(application);
-      } catch {
+      } catch (error) {
+      console.error(error);
         stillPending.push(application);
       }
     }
@@ -443,7 +447,8 @@ import {
           }
         );
       }
-    } catch {
+    } catch (error) {
+      console.error(error);
       tutorList.innerHTML = '<p class="status-message error">Could not load tutors right now. Please refresh and try again.</p>';
     }
   }
@@ -468,7 +473,8 @@ import {
         if (auth) {
           try {
             await signOut(auth);
-          } catch {
+          } catch (error) {
+      console.error(error);
             // Ignore sign-out errors and still clear the local session.
           }
         }
@@ -725,7 +731,8 @@ import {
           try {
             await createTutorApplication(tutorApplication);
             await flushPendingTutorApplications();
-          } catch {
+          } catch (error) {
+      console.error(error);
             queueTutorApplicationForSync(tutorApplication);
           }
         }
@@ -815,7 +822,8 @@ import {
             try {
               await createTutorApplication(tutorApplication);
               await flushPendingTutorApplications();
-            } catch {
+            } catch (error) {
+      console.error(error);
               queueTutorApplicationForSync(tutorApplication);
             }
           }
@@ -1099,7 +1107,8 @@ import {
         selectedProofFiles = [];
         renderProofFiles();
         setStatus(status, 'Application sent and synced to all students.', 'success');
-      } catch {
+      } catch (error) {
+      console.error(error);
         queueTutorApplicationForSync(application);
         setStatus(status, 'Application saved on this device. We will keep retrying cloud sync automatically.', 'error');
       }
@@ -1143,7 +1152,8 @@ import {
           if (window.closeModal) window.closeModal();
           status.textContent = '';
         }, 900);
-      } catch {
+      } catch (error) {
+      console.error(error);
         setStatus(status, 'Could not submit request right now. Please try again.', 'error');
       }
     };

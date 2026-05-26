@@ -1,11 +1,11 @@
-import { Auth, User } from 'firebase/auth';
+import { Auth, User } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 import {
   Firestore,
   doc,
   getDoc,
   serverTimestamp,
   setDoc,
-} from 'firebase/firestore';
+} from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 
 export interface AppUserDoc {
   uid: string;

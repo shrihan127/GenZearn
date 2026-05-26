@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { Auth } from 'firebase/auth';
+import { onAuthStateChanged, User } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
+import { Auth } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 import {
   getLinkedProviders,
   linkEmailPasswordProvider,
@@ -8,7 +8,7 @@ import {
   unlinkProvider,
   SupportedProviderId,
 } from './firebaseAuth';
-import { Firestore } from 'firebase/firestore';
+import { Firestore } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 import { upsertUserDocument } from './firestoreUsers';
 
 interface UseLinkedProvidersResult {

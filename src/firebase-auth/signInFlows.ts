@@ -4,7 +4,7 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   UserCredential,
-} from 'firebase/auth';
+} from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 import {
   completePendingCredentialSignIn,
   handleAccountExistsWithDifferentCredential,
