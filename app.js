@@ -84,9 +84,13 @@
   function initFirebase() {
     if (!window.firebase || !hasUsableFirebaseConfig(window.firebaseConfig)) return;
 
-    window.auth = window.auth || null;
-    window.db = window.db || null;
-    db = window.db;
+    if (!window.auth && typeof window.firebase.auth === 'function') {
+      window.auth = window.firebase.auth();
+    }
+    if (!window.db && typeof window.firebase.database === 'function') {
+      window.db = window.firebase.database();
+    }
+    db = window.db || null;
   }
 
   async function getCurrentAuthUserProfile() {
