@@ -13,3 +13,6 @@ assert.match(source, /getDoc\(/);
 assert.match(source, /request\.auth\.uid\s*==\s*uid/);
 
 console.log('firebase-profiles.js contains required Firebase user profile logic.');
+
+assert.match(source, /doc\(db,\s*'users',\s*user\.uid\)/);
+assert.doesNotMatch(source, /doc\(db,\s*'users',\s*[^)]*email/);

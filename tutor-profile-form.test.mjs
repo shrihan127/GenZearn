@@ -15,3 +15,6 @@ assert.match(source, /event\.preventDefault\(\)/);
 assert.match(source, /catch\s*\(error\)/);
 
 console.log('tutor-profile-form.js contains single user document account update logic.');
+
+assert.match(source, /doc\(db,\s*'users',\s*user\.uid\)/);
+assert.doesNotMatch(source, /doc\(db,\s*'users',\s*[^)]*email/);
