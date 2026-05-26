@@ -1,6 +1,6 @@
 import React, { FormEvent, useState } from 'react';
-import { Auth } from 'firebase/auth';
-import { Firestore } from 'firebase/firestore';
+import { Auth } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
+import { Firestore } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 import { useLinkedProviders } from './useLinkedProviders';
 
 export function LinkedProvidersPanel({ auth, db }: { auth: Auth; db: Firestore }) {

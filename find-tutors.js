@@ -1,4 +1,4 @@
-import { collection, onSnapshot, orderBy, query, where } from "firebase/firestore";
+import { collection, onSnapshot, orderBy, query, where } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { db } from "./firebase.js";
 
 const tutorsContainer = document.getElementById("tutorsContainer");
