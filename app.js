@@ -1,3 +1,4 @@
+import { firebaseConfig } from './firebase-config.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
 import {
   getAuth,
@@ -119,10 +120,9 @@ import {
   }
 
   async function initFirebase() {
-    if (!hasUsableFirebaseConfig(window.firebaseConfig)) return;
+    if (!hasUsableFirebaseConfig(firebaseConfig)) return;
 
     try {
-      const firebaseConfig = window.firebaseConfig;
       const app = initializeApp(firebaseConfig);
       auth = getAuth(app);
       db = getDatabase(app);
