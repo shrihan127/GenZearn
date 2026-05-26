@@ -17,13 +17,20 @@ export async function signInWithGoogleHandlingDuplicates(auth: Auth): Promise<Us
     const resolution = await handleAccountExistsWithDifferentCredential(auth, error);
     if (!resolution) throw error;
 
-    if (resolution.existingMethods.includes('password')) {
-      throw new Error(
-        `An account already exists for ${resolution.email} using email/password. Sign in with password first, then link Google from account settings.`
-      );
-    }
+    const enhanced = new Error(
+      `An account already exists for ${resolution.email}. Sign in with your existing method, then link Google.`
+    ) as Error & {
+      code?: string;
+      email?: string;
+      existingMethods?: string[];
+      pendingCredential?: ReturnType<typeof GoogleAuthProvider.credentialFromError>;
+    };
 
-    throw new Error(`Account exists for ${resolution.email} with providers: ${resolution.existingMethods.join(', ')}`);
+    enhanced.code = 'auth/account-exists-with-different-credential';
+    enhanced.email = resolution.email;
+    enhanced.existingMethods = resolution.existingMethods;
+    enhanced.pendingCredential = resolution.pendingCredential;
+    throw enhanced;
   }
 }
 
