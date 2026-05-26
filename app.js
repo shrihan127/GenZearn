@@ -86,14 +86,22 @@
 
   async function initFirebase() {
     if (!hasUsableFirebaseConfig(window.firebaseConfig)) return;
-    const firebaseCore = await import('./firebase.js');
-    const authModule = await import('https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js');
-    const dbModule = await import('https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js');
 
-    auth = firebaseCore.auth;
-    db = firebaseCore.db;
-    firebaseAuthApi = authModule;
-    firebaseDbApi = dbModule;
+    try {
+      const firebaseCore = await import('./firebase.js');
+      const authModule = await import('https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js');
+      const dbModule = await import('https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js');
+
+      auth = firebaseCore.auth;
+      db = firebaseCore.db;
+      firebaseAuthApi = authModule;
+      firebaseDbApi = dbModule;
+    } catch {
+      auth = null;
+      db = null;
+      firebaseAuthApi = null;
+      firebaseDbApi = null;
+    }
   }
 
   async function getCurrentAuthUserProfile() {
