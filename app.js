@@ -1,17 +1,27 @@
-import { auth as firebaseAuth, db as firebaseRtdb, firebaseConfig } from './firebase.js';
+import { initializeApp } from 'firebase/app';
 import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
-  GoogleAuthProvider,
-  signInWithPopup,
+  fetchSignInMethodsForEmail,
+  signOut,
   linkWithCredential,
   EmailAuthProvider,
-  fetchSignInMethodsForEmail,
-  updateProfile,
-  signOut
+  updateProfile
 } from 'firebase/auth';
-import { ref, get, set, push, onValue, off } from 'firebase/database';
+
+import {
+  getDatabase,
+  ref,
+  get,
+  set,
+  push,
+  onValue,
+  off
+} from 'firebase/database';
 
 (function () {
   const STORAGE_KEYS = {
@@ -24,8 +34,6 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
 
   let db = null;
   let auth = null;
-  let firebaseAuthApi = null;
-  let firebaseDbApi = null;
 
   function hasUsableFirebaseConfig(config) {
     if (!config || typeof config !== 'object') return false;
@@ -65,11 +73,11 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
 
 
   async function upsertUserProfile(user, profile) {
-    if (!db || !firebaseDbApi || !user || !user.uid || !profile) return;
+    if (!db || !user || !user.uid || !profile) return;
 
     const now = new Date().toISOString();
-    const userRef = firebaseDbApi.ref(db, 'users/' + user.uid);
-    const userSnapshot = await firebaseDbApi.get(userRef);
+    const userRef = ref(db, 'users/' + user.uid);
+    const userSnapshot = await get(userRef);
     const existingUser = userSnapshot.exists() ? userSnapshot.val() || {} : {};
 
     const roles = new Set(Array.isArray(existingUser.roles) ? existingUser.roles : []);
@@ -83,7 +91,7 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
 
     if (!roles.size) roles.add('student');
 
-    await firebaseDbApi.set(userRef, {
+    await set(userRef, {
       name: existingUser.name || profile.name || user.displayName || user.email || 'User',
       email: (profile.email || existingUser.email || String(user.email || '')).trim().toLowerCase(),
       roles: Array.from(roles),
@@ -103,20 +111,30 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
     if (!hasUsableFirebaseConfig(window.firebaseConfig)) return;
 
     try {
-      const firebaseCore = await import('./firebase.js');
-      const authModule = await import('https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js');
-      const dbModule = await import('https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js');
-
-      auth = firebaseCore.auth;
-      db = firebaseCore.db;
-      firebaseAuthApi = authModule;
-      firebaseDbApi = dbModule;
+      const firebaseConfig = window.firebaseConfig;
+      const app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      db = getDatabase(app);
     } catch {
       auth = null;
       db = null;
-      firebaseAuthApi = null;
-      firebaseDbApi = null;
     }
+  }
+
+  function ensureAuthInitialized() {
+    if (!auth) throw new Error('Auth not initialized');
+  }
+
+  function dbGet(path) {
+    return get(ref(db, path));
+  }
+
+  function dbSet(path, value) {
+    return set(ref(db, path), value);
+  }
+
+  function dbPush(path, value) {
+    return push(ref(db, path), value);
   }
 
   async function getCurrentAuthUserProfile() {
@@ -134,7 +152,7 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
     if (!db) return fallbackProfile;
 
     try {
-      const snapshot = await firebaseDbApi.get(firebaseDbApi.ref(db, `users/${authUser.uid}`));
+      const snapshot = await get(ref(db, `users/${authUser.uid}`));
       if (!snapshot.exists()) return fallbackProfile;
       const remoteProfile = snapshot.val() || {};
       const remoteRoles = Array.isArray(remoteProfile.roles) ? remoteProfile.roles : [];
@@ -152,7 +170,7 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
 
   async function createTutorApplication(application) {
     if (!db) return;
-    await firebaseDbApi.push(firebaseDbApi.ref(db, 'tutorApplications'), application);
+    await dbPush('tutorApplications', application);
   }
 
   function queueTutorApplicationForSync(application) {
@@ -181,14 +199,14 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
 
   async function createSessionRequest(request) {
     if (!db) return;
-    await firebaseDbApi.push(firebaseDbApi.ref(db, 'sessionRequests'), request);
+    await dbPush('sessionRequests', request);
   }
 
   async function getTutorApplications() {
     const localApplications = loadJson(STORAGE_KEYS.tutorApps, []);
     if (!db) return localApplications;
 
-    const snapshot = await firebaseDbApi.get(firebaseDbApi.ref(db, 'tutorApplications'));
+    const snapshot = await dbGet('tutorApplications');
     const remoteApplications = Object.entries(snapshot.val() || {}).map(([key, value]) => ({
       ...value,
       _remoteKey: key
@@ -199,7 +217,7 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
   function subscribeTutorApplications(onUpdate, onError) {
     if (!db || typeof onUpdate !== 'function') return function () {};
 
-    const ref = firebaseDbApi.ref(db, 'tutorApplications');
+    const ref = ref(db, 'tutorApplications');
     const handleValue = function (snapshot) {
       const remoteApplications = Object.entries(snapshot.val() || {}).map(([key, value]) => ({
         ...value,
@@ -211,9 +229,9 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
       if (typeof onError === 'function') onError();
     };
 
-    firebaseDbApi.onValue(ref, handleValue, handleError);
+    onValue(ref, handleValue, handleError);
     return function () {
-      firebaseDbApi.off(ref, 'value', handleValue);
+      off(ref, 'value', handleValue);
     };
   }
 
@@ -439,7 +457,7 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
         localStorage.removeItem(STORAGE_KEYS.currentUser);
         if (auth) {
           try {
-            await firebaseAuthApi.signOut(auth);
+            await signOut(auth);
           } catch {
             // Ignore sign-out errors and still clear the local session.
           }
@@ -455,18 +473,23 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
 
 
 
-  async function signInWithGoogleAndLinkIfNeeded() {
-    const provider = new firebaseAuthApi.GoogleAuthProvider();
+  function createGoogleProvider() {
+    const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
+    return provider;
+  }
+
+  async function signInWithGoogle() {
+        ensureAuthInitialized();
 
     try {
-      return await firebaseAuthApi.signInWithPopup(auth, provider);
+      return await signInWithPopup(auth, createGoogleProvider());
     } catch (error) {
       if (!error || error.code !== 'auth/account-exists-with-different-credential') throw error;
 
       const email = String(error.email || '').trim().toLowerCase();
       const pendingCredential = error.credential;
-      const methods = email ? await firebaseAuthApi.fetchSignInMethodsForEmail(auth, email) : [];
+      const methods = email ? await fetchSignInMethodsForEmail(auth, email) : [];
 
       if (!methods.includes('password')) {
         throw new Error('Please sign in with your existing provider first, then retry Google to link accounts.');
@@ -477,7 +500,7 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
         throw new Error('Account linking cancelled.');
       }
 
-      const emailResult = await firebaseAuthApi.signInWithEmailAndPassword(auth, email, password);
+      const emailResult = await signInWithEmailAndPassword(auth, email, password);
       if (pendingCredential) {
         await linkWithCredential(emailResult.user, pendingCredential);
       }
@@ -486,23 +509,24 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
   }
 
   async function createOrLinkEmailUser(email, password, name) {
+    ensureAuthInitialized();
     try {
-      const result = await firebaseAuthApi.createUserWithEmailAndPassword(auth, email, password);
-      await result.user.updateProfile({ displayName: name });
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(result.user, { displayName: name });
       return result;
     } catch (error) {
       if (!error || error.code !== 'auth/email-already-in-use') throw error;
 
-      const methods = await firebaseAuthApi.fetchSignInMethodsForEmail(auth, email);
+      const methods = await fetchSignInMethodsForEmail(auth, email);
       if (methods.includes('password')) {
-        return firebaseAuthApi.signInWithEmailAndPassword(auth, email, password);
+        return signInWithEmailAndPassword(auth, email, password);
       }
 
       if (methods.includes('google.com')) {
-        const googleResult = await signInWithGoogleAndLinkIfNeeded();
-        const credential = firebaseAuthApi.EmailAuthProvider.credential(email, password);
-        await googleResult.user.linkWithCredential(credential);
-        return firebaseAuthApi.signInWithEmailAndPassword(auth, email, password);
+        const googleResult = await signInWithGoogle();
+        const credential = EmailAuthProvider.credential(email, password);
+        await linkWithCredential(googleResult.user, credential);
+        return signInWithEmailAndPassword(auth, email, password);
       }
 
       throw new Error('This email is already registered with another sign-in method. Please use that method first.');
@@ -510,12 +534,10 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
   }
 
   async function createFirebaseAuthUser(email, password) {
-    if (!auth) {
-      throw new Error('Firebase Auth is not configured right now.');
-    }
+    ensureAuthInitialized();
 
     try {
-      await firebaseAuthApi.createUserWithEmailAndPassword(auth, email, password);
+      await createUserWithEmailAndPassword(auth, email, password);
     } catch (error) {
       if (error && error.code === 'auth/email-already-in-use') {
         throw new Error('An account with this email already exists. Please log in.');
@@ -742,7 +764,7 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
         googleSignupBtn.disabled = true;
         submitButton.disabled = true;
         try {
-          const result = await signInWithGoogleAndLinkIfNeeded();
+          const result = await signInWithGoogle();
           const googleUser = result.user;
           const name = nameFromForm || googleUser.displayName || 'User';
           const email = String(googleUser.email || '').trim().toLowerCase();
@@ -804,7 +826,7 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
     if (!form) return;
 
     const status = document.getElementById('loginStatus');
-    if (!auth || !firebaseAuthApi) {
+    if (!auth) {
       setStatus(status, 'Firebase Auth is not configured right now.', 'error');
       return;
     }
@@ -815,7 +837,7 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
       googleLoginBtn.addEventListener('click', async function () {
         googleLoginBtn.disabled = true;
         try {
-          const result = await signInWithGoogleAndLinkIfNeeded();
+          const result = await signInWithGoogle();
           const user = result.user;
           await upsertUserProfile(user, {
             name: user.displayName || 'User',
@@ -849,11 +871,11 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
       const password = form.elements.password.value;
 
       try {
-        if (!auth || !firebaseAuthApi) {
+        if (!auth) {
           setStatus(status, 'Login is unavailable until Firebase Auth is configured.', 'error');
           return;
         }
-        const result = await firebaseAuthApi.signInWithEmailAndPassword(auth, email, password);
+        const result = await signInWithEmailAndPassword(auth, email, password);
         const user = await getCurrentAuthUserProfile();
         if (!user) throw new Error('Could not load user profile.');
         const role = user.role || (Array.isArray(user.roles) ? user.roles[user.roles.length - 1] || '' : '');
@@ -909,11 +931,11 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
       }
 
       try {
-        if (!auth || !firebaseAuthApi) {
+        if (!auth) {
           setStatus(status, 'Password reset is unavailable until Firebase Auth is configured.', 'error');
           return;
         }
-        await firebaseAuthApi.sendPasswordResetEmail(auth, email);
+        await sendPasswordResetEmail(auth, email);
         setStatus(status, `Password reset link sent to ${email}. Please check your inbox.`, 'success');
       } catch (error) {
         if (error && error.code === 'auth/invalid-email') {
