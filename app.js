@@ -1,4 +1,4 @@
-import { auth, db as rtdb, firebaseConfig } from './firebase.js';
+import { auth as firebaseAuth, db as firebaseRtdb, firebaseConfig } from './firebase.js';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -100,13 +100,13 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
   }
 
   async function initFirebase() {
-    if (!hasUsableFirebaseConfig(window.firebaseConfig)) return;
+    if (!hasUsableFirebaseConfig(firebaseConfig)) return;
     const firebaseCore = await import('./firebase.js');
     const authModule = await import('https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js');
     const dbModule = await import('https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js');
 
-    auth = firebaseCore.auth;
-    db = firebaseCore.db;
+    auth = firebaseCore.auth || firebaseAuth;
+    db = firebaseCore.db || firebaseRtdb;
     firebaseAuthApi = authModule;
     firebaseDbApi = dbModule;
   }
