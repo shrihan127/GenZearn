@@ -1,4 +1,4 @@
-import { auth, db as rtdb, firebaseConfig } from './firebase.js';
+import { auth as firebaseAuth, db as firebaseRtdb, firebaseConfig } from './firebase.js';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
