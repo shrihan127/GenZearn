@@ -82,15 +82,15 @@
   }
 
   function initFirebase() {
-    if (!window.firebase || !hasUsableFirebaseConfig(window.firebaseConfig)) return;
+    if (!window.firebase || !window.firebase.apps?.length) return;
 
-    window.auth = window.auth || null;
-    window.db = window.db || null;
+    window.auth = window.firebase.auth();
+    window.db = window.firebase.database();
     db = window.db;
   }
 
   async function getCurrentAuthUserProfile() {
-    if (!window.firebase || typeof window.firebase.auth !== 'function') return null;
+    if (!window.firebase?.auth) return null;
     const authUser = window.firebase.auth().currentUser;
     if (!authUser) return null;
 
@@ -480,7 +480,7 @@
   }
 
   async function createFirebaseAuthUser(email, password) {
-    if (!window.firebase || typeof window.firebase.auth !== 'function') {
+    if (!window.firebase?.auth) {
       throw new Error('Firebase Auth is not configured right now.');
     }
 
@@ -774,7 +774,7 @@
     if (!form) return;
 
     const status = document.getElementById('loginStatus');
-    if (!window.firebase || typeof window.firebase.auth !== 'function') {
+    if (!window.firebase?.auth) {
       setStatus(status, 'Firebase Auth is not configured right now.', 'error');
       return;
     }
@@ -819,7 +819,7 @@
       const password = form.elements.password.value;
 
       try {
-        if (!window.firebase || typeof window.firebase.auth !== 'function') {
+        if (!window.firebase?.auth) {
           setStatus(status, 'Login is unavailable until Firebase Auth is configured.', 'error');
           return;
         }
@@ -879,7 +879,7 @@
       }
 
       try {
-        if (!window.firebase || typeof window.firebase.auth !== 'function') {
+        if (!window.firebase?.auth) {
           setStatus(status, 'Password reset is unavailable until Firebase Auth is configured.', 'error');
           return;
         }
