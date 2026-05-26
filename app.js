@@ -2,17 +2,12 @@ import { firebaseConfig } from './firebase-config.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
 import {
   getAuth,
-  GoogleAuthProvider,
-  signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
-  fetchSignInMethodsForEmail,
-  signOut,
-  linkWithCredential,
-  EmailAuthProvider,
-  updateProfile
+  signOut
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
+import { signInUnified, signInWithGoogleUnified, signUpUnified } from './src/auth/resolveAuth.js';
 
 import {
   getDatabase,
@@ -486,71 +481,14 @@ import {
   }
 
 
-
-
-
-  function createGoogleProvider() {
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
-    return provider;
-  }
-
   async function signInWithGoogle() {
     ensureAuthInitialized();
-
-    const provider = createGoogleProvider();
-
-    try {
-      return await signInWithPopup(auth, provider);
-    } catch (error) {
-      if (!error || error.code !== 'auth/account-exists-with-different-credential') throw error;
-
-      const email = String(error.customData?.email || error.email || '').trim().toLowerCase();
-      const pendingCredential = GoogleAuthProvider.credentialFromError(error) || error.credential;
-      const methods = email ? await fetchSignInMethodsForEmail(auth, email) : [];
-
-      if (methods.includes('password')) {
-        const password = window.prompt('Enter your existing password to link Google to this account:');
-        if (!password) {
-          throw new Error('Account linking cancelled.');
-        }
-
-        const emailResult = await signInWithEmailAndPassword(auth, email, password);
-
-        if (pendingCredential) {
-          await linkWithCredential(emailResult.user, pendingCredential);
-        }
-
-        return emailResult;
-      }
-
-      throw new Error('Please sign in with your existing provider first, then retry Google to link accounts.');
-    }
+    return signInWithGoogleUnified(auth);
   }
 
   async function createOrLinkEmailUser(email, password, name) {
     ensureAuthInitialized();
-    try {
-      const result = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(result.user, { displayName: name });
-      return result;
-    } catch (error) {
-      if (!error || error.code !== 'auth/email-already-in-use') throw error;
-
-      const methods = await fetchSignInMethodsForEmail(auth, email);
-      if (methods.includes('password')) {
-        return signInWithEmailAndPassword(auth, email, password);
-      }
-
-      if (methods.includes('google.com')) {
-        const googleResult = await signInWithGoogle();
-        const credential = EmailAuthProvider.credential(email, password);
-        await linkWithCredential(googleResult.user, credential);
-        return signInWithEmailAndPassword(auth, email, password);
-      }
-
-      throw new Error('This email is already registered with another sign-in method. Please use that method first.');
-    }
+    return signUpUnified(auth, email, password, name);
   }
 
   async function createFirebaseAuthUser(email, password) {
@@ -900,7 +838,7 @@ import {
           setStatus(status, 'Login is unavailable until Firebase Auth is configured.', 'error');
           return;
         }
-        const result = await signInWithEmailAndPassword(auth, email, password);
+        const result = await signInUnified(auth, email, password);
         await syncAuthenticatedUserCoreProfile();
         const user = await getCurrentAuthUserProfile();
         if (!user) throw new Error('Could not load user profile.');
