@@ -72,6 +72,16 @@ import {
   }
 
 
+
+  async function syncAuthenticatedUserCoreProfile() {
+    if (!db || !auth || !auth.currentUser || !auth.currentUser.uid) return;
+
+    await set(ref(db, `users/${auth.currentUser.uid}`), {
+      email: auth.currentUser.email || '',
+      name: auth.currentUser.displayName || '',
+      updatedAt: Date.now()
+    });
+  }
   async function upsertUserProfile(user, profile) {
     if (!db || !user || !user.uid || !profile) return;
 
@@ -679,6 +689,7 @@ import {
 
       try {
         const result = await createOrLinkEmailUser(email, password, name);
+        await syncAuthenticatedUserCoreProfile();
 
         // 3. Store extra user data in Realtime Database (optional)
         if (db) {
@@ -769,6 +780,7 @@ import {
         submitButton.disabled = true;
         try {
           const result = await signInWithGoogle();
+          await syncAuthenticatedUserCoreProfile();
           const googleUser = result.user;
           const name = nameFromForm || googleUser.displayName || 'User';
           const email = String(googleUser.email || '').trim().toLowerCase();
@@ -843,6 +855,7 @@ import {
         try {
           const result = await signInWithGoogle();
           const user = result.user;
+          await syncAuthenticatedUserCoreProfile();
           await upsertUserProfile(user, {
             name: user.displayName || 'User',
             email: String(user.email || '').trim().toLowerCase(),
@@ -880,6 +893,7 @@ import {
           return;
         }
         const result = await signInWithEmailAndPassword(auth, email, password);
+        await syncAuthenticatedUserCoreProfile();
         const user = await getCurrentAuthUserProfile();
         if (!user) throw new Error('Could not load user profile.');
         const role = user.role || (Array.isArray(user.roles) ? user.roles[user.roles.length - 1] || '' : '');
