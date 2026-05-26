@@ -804,7 +804,7 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
     if (!form) return;
 
     const status = document.getElementById('loginStatus');
-    if (!auth) {
+    if (!auth || !firebaseAuthApi) {
       setStatus(status, 'Firebase Auth is not configured right now.', 'error');
       return;
     }
@@ -849,7 +849,7 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
       const password = form.elements.password.value;
 
       try {
-        if (!auth) {
+        if (!auth || !firebaseAuthApi) {
           setStatus(status, 'Login is unavailable until Firebase Auth is configured.', 'error');
           return;
         }
@@ -909,7 +909,7 @@ import { ref, get, set, push, onValue, off } from 'firebase/database';
       }
 
       try {
-        if (!auth) {
+        if (!auth || !firebaseAuthApi) {
           setStatus(status, 'Password reset is unavailable until Firebase Auth is configured.', 'error');
           return;
         }
