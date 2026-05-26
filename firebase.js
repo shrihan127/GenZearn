@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/fireba
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import { getDatabase } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
 
-export const firebaseConfig = window.firebaseConfig;
+import { firebaseConfig } from "./firebase-config.js";
 
 export const app = initializeApp(firebaseConfig);
 
