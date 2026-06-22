@@ -9,6 +9,24 @@ import {
   updateProfile
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 
+
+function resolvePendingGoogleCredential(error) {
+  const providerCredential = GoogleAuthProvider.credentialFromError(error);
+  if (providerCredential) return providerCredential;
+
+  if (error?.credential) return error.credential;
+
+  const tokenResponse = error?.customData?._tokenResponse;
+  const idToken = tokenResponse?.oauthIdToken || tokenResponse?.idToken || null;
+  const accessToken = tokenResponse?.oauthAccessToken || tokenResponse?.accessToken || null;
+
+  if (idToken || accessToken) {
+    return GoogleAuthProvider.credential(idToken, accessToken);
+  }
+
+  return null;
+}
+
 export async function signInUnified(auth, email, password) {
   const methods = await fetchSignInMethodsForEmail(auth, email);
 
@@ -43,7 +61,7 @@ export async function signInWithGoogleUnified(auth) {
     }
 
     const email = error.customData?.email;
-    const pendingCred = GoogleAuthProvider.credentialFromError(error);
+    const pendingCred = resolvePendingGoogleCredential(error);
 
     const methods = await fetchSignInMethodsForEmail(auth, email);
 
@@ -53,7 +71,9 @@ export async function signInWithGoogleUnified(auth) {
 
       const userCred = await signInWithEmailAndPassword(auth, email, password);
 
-      await linkWithCredential(userCred.user, pendingCred);
+      if (pendingCred) {
+        await linkWithCredential(userCred.user, pendingCred);
+      }
 
       return userCred;
     }
