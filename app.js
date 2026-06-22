@@ -4,10 +4,14 @@ import {
   getAuth,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  fetchSignInMethodsForEmail,
+  updateProfile,
+  EmailAuthProvider,
+  linkWithCredential,
   sendPasswordResetEmail,
   signOut
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
-import { signInUnified, signInWithGoogleUnified, signUpUnified } from './src/auth/resolveAuth.js';
+import { signInUnified, signInWithGoogleUnified } from './src/auth/resolveAuth.js';
 
 import {
   getDatabase,
@@ -488,7 +492,27 @@ import {
 
   async function createOrLinkEmailUser(email, password, name) {
     ensureAuthInitialized();
-    return signUpUnified(auth, email, password, name);
+    try {
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(result.user, { displayName: name });
+      return result;
+    } catch (error) {
+      if (!error || error.code !== 'auth/email-already-in-use') throw error;
+
+      const methods = await fetchSignInMethodsForEmail(auth, email);
+      if (methods.includes('password')) {
+        return signInWithEmailAndPassword(auth, email, password);
+      }
+
+      if (methods.includes('google.com')) {
+        const googleResult = await signInWithGoogle();
+        const credential = EmailAuthProvider.credential(email, password);
+        await linkWithCredential(googleResult.user, credential);
+        return signInWithEmailAndPassword(auth, email, password);
+      }
+
+      throw new Error('This email is already registered with another sign-in method. Please use that method first.');
+    }
   }
 
   async function createFirebaseAuthUser(email, password) {
